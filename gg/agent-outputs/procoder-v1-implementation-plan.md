@@ -112,6 +112,11 @@ Implement `procoder prepare` end to end:
 - helper injection
 - task package zip generation at repo root
 
+Git-valid branch shape for this and later phases:
+
+- default prepared task branch: `refs/heads/procoder/<exchange-id>/task`
+- writable task-family prefix: `refs/heads/procoder/<exchange-id>`
+
 ### Read Before Coding
 
 - all new shared packages from Phase 1
@@ -186,6 +191,11 @@ Implement `./procoder-return` end to end:
 - descendant checks
 - bundle generation
 - return package zip generation
+
+This phase must follow the Git-valid task-family shape established in the specs:
+
+- default prepared task branch: `refs/heads/procoder/<exchange-id>/task`
+- allowed returned refs: `refs/heads/procoder/<exchange-id>/*`
 
 ### Read Before Coding
 

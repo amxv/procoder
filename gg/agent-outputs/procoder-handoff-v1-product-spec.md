@@ -149,7 +149,7 @@ Each exchange should have a dedicated branch family keyed by the exchange ID.
 
 Example shape:
 
-- `procoder/<exchange-id>`
+- `procoder/<exchange-id>/task`
 - `procoder/<exchange-id>/...`
 
 Rules:
@@ -162,6 +162,14 @@ This separation is important:
 
 - repository context can be broad
 - returned mutable refs must stay narrow
+
+The prepared task branch should be the default writable branch inside that family:
+
+- `procoder/<exchange-id>/task`
+
+Additional returned branches, when created, should live alongside it under the same exchange prefix, for example:
+
+- `procoder/<exchange-id>/experiment`
 
 ## Task Package Contents
 

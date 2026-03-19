@@ -26,11 +26,10 @@ It uses the final naming model:
   The zip created by `./procoder-return`, downloaded from ChatGPT and consumed by `procoder apply`.
 
 - `task branch`
-  The root branch created by `prepare` for the exchange, typically `refs/heads/procoder/<exchange-id>`.
+  The default prepared branch created by `prepare` for the exchange, typically `refs/heads/procoder/<exchange-id>/task`.
 
 - `task branch family`
   The writable ref scope for the exchange:
-  - `refs/heads/procoder/<exchange-id>`
   - `refs/heads/procoder/<exchange-id>/*`
 
 ## Data Model
@@ -142,7 +141,7 @@ The exact field list may evolve, but V1 should include the following concepts:
     "head_oid": "abc123..."
   },
   "task": {
-    "root_ref": "refs/heads/procoder/20260320-abc123",
+    "root_ref": "refs/heads/procoder/20260320-abc123/task",
     "ref_prefix": "refs/heads/procoder/20260320-abc123",
     "base_oid": "abc123..."
   },
@@ -160,8 +159,8 @@ The exact field list may evolve, but V1 should include the following concepts:
 
 ### Notes
 
-- `task.root_ref` is the exact root task branch.
-- `task.ref_prefix` defines the writable family.
+- `task.root_ref` is the exact default prepared task branch.
+- `task.ref_prefix` defines the writable family prefix for the exchange.
 - `task.base_oid` is the ancestor every returned task-family ref must descend from.
 - `context.heads` and `context.tags` are the exported baseline snapshots used by `./procoder-return` to detect out-of-scope mutations.
 
@@ -177,12 +176,12 @@ Suggested V1 shape:
   "tool_version": "0.1.0",
   "bundle_file": "procoder-return.bundle",
   "task": {
-    "root_ref": "refs/heads/procoder/20260320-abc123",
+    "root_ref": "refs/heads/procoder/20260320-abc123/task",
     "base_oid": "abc123..."
   },
   "updates": [
     {
-      "ref": "refs/heads/procoder/20260320-abc123",
+      "ref": "refs/heads/procoder/20260320-abc123/task",
       "old_oid": "abc123...",
       "new_oid": "def456..."
     },
@@ -216,7 +215,6 @@ These are available for read-only context in the exported repo.
 
 Only task-family refs may be returned by default:
 
-- `refs/heads/procoder/<exchange-id>`
 - `refs/heads/procoder/<exchange-id>/*`
 
 The helper should fail if other branch refs or any tag refs changed from the baseline snapshot.
@@ -283,7 +281,7 @@ Example:
 3. Read current `HEAD` ref and OID.
 4. Generate the exchange ID.
 5. Create local task branch:
-   `refs/heads/procoder/<exchange-id>` at current `HEAD`.
+   `refs/heads/procoder/<exchange-id>/task` at current `HEAD`.
 6. Build `exchange.json`.
 7. Write local copy to:
    `.git/procoder/exchanges/<exchange-id>/exchange.json`
@@ -374,7 +372,7 @@ Required examples:
 - no new commits:
   say that no new commits were found on the task branch family and instruct the agent to create at least one commit before rerunning
 - out-of-scope branch changes:
-  name the offending refs and explain that only `refs/heads/procoder/<exchange-id>` and its children may be returned
+  name the offending refs and explain that only `refs/heads/procoder/<exchange-id>/*` may be returned
 - tag changes:
   name the changed tags and explain that V1 return packages do not support tag changes
 - invalid exchange metadata:
@@ -388,10 +386,10 @@ Because every returned ref must descend from `task.base_oid`, the helper can bui
 
 Conceptually:
 
-- updated root task branch:
+- updated default task branch:
   `<task.base_oid>..<task.root_ref>`
-- new child task branch:
-  `<task.base_oid>..<child_ref>`
+- additional task-family branch:
+  `<task.base_oid>..<task_ref>`
 
 The bundle should advertise only the changed task-family refs.
 
@@ -440,7 +438,7 @@ Optional flags:
 8. If `--dry-run` is set, print the plan and exit.
 9. Ensure no destination ref to be updated is currently checked out.
 10. Apply ref changes atomically with `git update-ref --stdin`.
-11. If `--checkout` is set, check out the updated root task branch destination.
+11. If `--checkout` is set, check out the updated default task branch destination.
 12. Clean up temporary import refs.
 
 ## Destination Ref Mapping
@@ -451,7 +449,7 @@ Without `--namespace`, each returned ref maps to itself.
 
 Examples:
 
-- `refs/heads/procoder/<exchange-id>` stays the same
+- `refs/heads/procoder/<exchange-id>/task` stays the same
 - `refs/heads/procoder/<exchange-id>/experiment` stays the same
 
 ### Namespace Mapping
@@ -464,9 +462,9 @@ With `--namespace <prefix>`, map the returned task branch family under:
 Examples:
 
 - source:
-  `refs/heads/procoder/20260320-abc123`
+  `refs/heads/procoder/20260320-abc123/task`
   becomes:
-  `refs/heads/procoder-import/20260320-abc123`
+  `refs/heads/procoder-import/20260320-abc123/task`
 
 - source:
   `refs/heads/procoder/20260320-abc123/experiment`
@@ -530,7 +528,7 @@ Suggested V1 codes:
 ### Example Error
 
 ```text
-BRANCH_MOVED: cannot update refs/heads/procoder/20260320-abc123
+BRANCH_MOVED: cannot update refs/heads/procoder/20260320-abc123/task
 Expected old OID: abc123...
 Current local OID: f00baa...
 Hint: rerun with --namespace procoder-import
@@ -548,7 +546,7 @@ Hint: commit or discard these changes, then rerun ./procoder-return
 
 ```text
 NO_NEW_COMMITS: no new commits found in the task branch family
-Task branch family: refs/heads/procoder/20260320-abc123
+Task branch family: refs/heads/procoder/20260320-abc123/*
 Hint: create at least one commit on the task branch, then rerun ./procoder-return
 ```
 
@@ -557,7 +555,6 @@ REF_OUT_OF_SCOPE: changed refs are outside the allowed task branch family
 Changed refs:
   refs/heads/main
 Allowed refs:
-  refs/heads/procoder/20260320-abc123
   refs/heads/procoder/20260320-abc123/*
 Hint: move your commits onto the task branch family, then rerun ./procoder-return
 ```
