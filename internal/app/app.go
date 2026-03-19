@@ -5,11 +5,13 @@ import (
 	"io"
 
 	"github.com/amxv/procoder/internal/errs"
+	"github.com/amxv/procoder/internal/prepare"
 )
 
 const commandName = "procoder"
 
 var version = "dev"
+var runPrepare = prepare.Run
 
 func Run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 || isHelpArg(args[0]) {
@@ -26,11 +28,19 @@ func Run(args []string, stdout, stderr io.Writer) error {
 			printPrepareHelp(stdout)
 			return nil
 		}
-		return errs.New(
-			errs.CodeNotImplemented,
-			"`procoder prepare` is not implemented yet",
-			errs.WithHint("this command will be wired in a later implementation phase"),
-		)
+		if len(args) > 1 {
+			return errs.New(
+				errs.CodeUnknownCommand,
+				fmt.Sprintf("unknown argument %q for `procoder prepare`", args[1]),
+				errs.WithHint("run `procoder prepare --help`"),
+			)
+		}
+		result, err := runPrepare(prepare.Options{ToolVersion: version})
+		if err != nil {
+			return err
+		}
+		writeLines(stdout, prepare.FormatSuccess(result))
+		return nil
 	case "apply":
 		if len(args) > 1 && isHelpArg(args[1]) {
 			printApplyHelp(stdout)
@@ -67,7 +77,7 @@ func printRootHelp(w io.Writer) {
 		"  procoder <command> [arguments]",
 		"",
 		"Commands:",
-		"  prepare         create a task package (coming soon)",
+		"  prepare                       create a task package",
 		"  apply <return-package.zip>     apply a return package (coming soon)",
 		"  version         print CLI version",
 		"",

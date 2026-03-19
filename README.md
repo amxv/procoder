@@ -17,8 +17,8 @@ procoder --help
 
 ```bash
 procoder --help
-procoder hello
-procoder hello <name>
+procoder prepare
+procoder apply <return-package.zip>
 procoder version
 ```
 
