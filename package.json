@@ -1,7 +1,7 @@
 {
   "name": "@amxv/procoder",
   "version": "0.1.0",
-  "description": "Template for shipping a Go CLI via npm with GitHub release automation",
+  "description": "Offline Git exchange CLI for local repositories and locked-down ChatGPT coding containers",
   "license": "MIT",
   "author": "amxv",
   "repository": {
@@ -31,17 +31,17 @@
   ],
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
-    "test": "node --check bin/procoder.js && node --check scripts/postinstall.js",
+    "test": "node --test scripts/postinstall.test.js && node --check bin/procoder.js && node --check scripts/postinstall.js",
     "lint": "npm run test"
   },
   "engines": {
     "node": ">=18"
   },
   "keywords": [
-    "go",
+    "git",
+    "offline",
     "cli",
-    "template",
-    "npm",
-    "release"
+    "chatgpt",
+    "exchange"
   ]
 }

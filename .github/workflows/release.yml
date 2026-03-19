@@ -9,6 +9,7 @@ env:
   GO_VERSION: "1.26"
   NODE_VERSION: "22"
   CLI_BINARY: "procoder"
+  HELPER_BINARY: "procoder-return"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
@@ -47,15 +48,23 @@ jobs:
     strategy:
       matrix:
         include:
-          - goos: darwin
+          - binary_kind: cli
+            goos: darwin
             goarch: amd64
-          - goos: darwin
+          - binary_kind: cli
+            goos: darwin
             goarch: arm64
-          - goos: linux
+          - binary_kind: cli
+            goos: linux
             goarch: amd64
-          - goos: linux
+          - binary_kind: cli
+            goos: linux
             goarch: arm64
-          - goos: windows
+          - binary_kind: cli
+            goos: windows
+            goarch: amd64
+          - binary_kind: helper
+            goos: linux
             goarch: amd64
     steps:
       - name: Checkout
@@ -70,18 +79,24 @@ jobs:
       - name: Build binary
         run: |
           mkdir -p dist
-          EXT=""
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            EXT=".exe"
+          CMD_PATH="./cmd/${{ env.CLI_BINARY }}"
+          ASSET_NAME="${{ env.CLI_BINARY }}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          if [ "${{ matrix.binary_kind }}" = "helper" ]; then
+            CMD_PATH="./cmd/${{ env.HELPER_BINARY }}"
+            ASSET_NAME="${{ env.HELPER_BINARY }}_${{ matrix.goos }}_${{ matrix.goarch }}"
           fi
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            ASSET_NAME="${ASSET_NAME}.exe"
+          fi
+
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
             go build -trimpath -ldflags="-s -w" \
-            -o "dist/${{ env.CLI_BINARY }}_${{ matrix.goos }}_${{ matrix.goarch }}${EXT}" ./cmd/${{ env.CLI_BINARY }}
+            -o "dist/${ASSET_NAME}" "${CMD_PATH}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: binary-${{ matrix.binary_kind }}-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/*
 
   github-release:

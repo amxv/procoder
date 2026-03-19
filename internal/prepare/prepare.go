@@ -531,37 +531,52 @@ func readGitConfigValue(runner gitx.Runner, scope, key string) (string, error) {
 }
 
 func resolveHelperBinary(explicit string) (string, error) {
+	envValue := os.Getenv(helperEnvVar)
+	executablePath, _ := os.Executable()
+	candidates := helperCandidatePaths(explicit, envValue, executablePath)
+	if resolved, err := resolveHelperBinaryFromCandidates(candidates); err == nil {
+		return resolved, nil
+	}
+
+	return "", errs.New(
+		errs.CodeInternal,
+		"procoder-return helper binary is not available",
+		errs.WithHint("install or build procoder-return_linux_amd64, or set PROCODER_RETURN_HELPER to a prebuilt helper path and retry"),
+	)
+}
+
+func helperCandidatePaths(explicit, envValue, executablePath string) []string {
 	var candidates []string
 	if v := strings.TrimSpace(explicit); v != "" {
 		candidates = append(candidates, v)
 	}
-	if v := strings.TrimSpace(os.Getenv(helperEnvVar)); v != "" {
+	if v := strings.TrimSpace(envValue); v != "" {
 		candidates = append(candidates, v)
 	}
-	if exePath, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exePath)
+	if v := strings.TrimSpace(executablePath); v != "" {
+		exeDir := filepath.Dir(v)
 		candidates = append(candidates,
-			filepath.Join(exeDir, defaultHelperName),
 			filepath.Join(exeDir, defaultHelperAsset),
+			filepath.Join(exeDir, defaultHelperName),
 		)
 	}
 
 	seen := make(map[string]struct{}, len(candidates))
+	ordered := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {
 		candidate = filepath.Clean(candidate)
 		if _, ok := seen[candidate]; ok {
 			continue
 		}
 		seen[candidate] = struct{}{}
+		ordered = append(ordered, candidate)
+	}
+	return ordered
+}
 
-		info, err := os.Stat(candidate)
-		if err != nil {
-			continue
-		}
-		if info.IsDir() {
-			continue
-		}
-		if runtime.GOOS != "windows" && info.Mode()&0o111 == 0 {
+func resolveHelperBinaryFromCandidates(candidates []string) (string, error) {
+	for _, candidate := range candidates {
+		if !isUsableHelperBinary(candidate) {
 			continue
 		}
 		absPath, err := filepath.Abs(candidate)
@@ -570,12 +585,21 @@ func resolveHelperBinary(explicit string) (string, error) {
 		}
 		return absPath, nil
 	}
+	return "", os.ErrNotExist
+}
 
-	return "", errs.New(
-		errs.CodeInternal,
-		"procoder-return helper binary is not available",
-		errs.WithHint("set PROCODER_RETURN_HELPER to a prebuilt helper path and retry"),
-	)
+func isUsableHelperBinary(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	if info.IsDir() {
+		return false
+	}
+	if runtime.GOOS != "windows" && info.Mode()&0o111 == 0 {
+		return false
+	}
+	return true
 }
 
 func copyExecutable(src, dst string) error {

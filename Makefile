@@ -4,11 +4,17 @@ GO ?= go
 GOFMT ?= gofmt
 BIN_NAME ?= procoder
 CMD_PATH ?= ./cmd/$(BIN_NAME)
+HELPER_NAME ?= procoder-return
+HELPER_GOOS ?= linux
+HELPER_GOARCH ?= amd64
+HELPER_ASSET ?= $(HELPER_NAME)_$(HELPER_GOOS)_$(HELPER_GOARCH)
+HELPER_CMD_PATH ?= ./cmd/$(HELPER_NAME)
 DIST_DIR ?= dist
 BIN_PATH ?= $(DIST_DIR)/$(BIN_NAME)
+HELPER_PATH ?= $(DIST_DIR)/$(HELPER_ASSET)
 LDFLAGS ?= -s -w
 
-.PHONY: help fmt test vet lint check build build-all install-local clean release-tag
+.PHONY: help fmt test vet lint check build build-helper build-all install-local clean release-tag
 
 help:
 	@echo "procoder command runner"
@@ -20,8 +26,9 @@ help:
 	@echo "  make lint         - run Node script checks"
 	@echo "  make check        - fmt + test + vet + lint"
 	@echo "  make build        - build local binary to dist/procoder"
-	@echo "  make build-all    - build release binaries for 5 target platforms"
-	@echo "  make install-local- install CLI to ~/.local/bin/procoder"
+	@echo "  make build-helper - build the linux/amd64 procoder-return helper asset"
+	@echo "  make build-all    - build release binaries for 5 target platforms plus helper asset"
+	@echo "  make install-local - install CLI and helper to ~/.local/bin"
 	@echo "  make clean        - remove dist artifacts"
 	@echo "  make release-tag  - create and push git tag (requires VERSION=x.y.z)"
 
@@ -43,7 +50,12 @@ build:
 	@mkdir -p $(DIST_DIR)
 	@$(GO) build -trimpath -ldflags="$(LDFLAGS)" -o $(BIN_PATH) $(CMD_PATH)
 
-build-all:
+build-helper:
+	@mkdir -p $(DIST_DIR)
+	@CGO_ENABLED=0 GOOS=$(HELPER_GOOS) GOARCH=$(HELPER_GOARCH) \
+		$(GO) build -trimpath -ldflags="$(LDFLAGS)" -o $(HELPER_PATH) $(HELPER_CMD_PATH)
+
+build-all: build-helper
 	@mkdir -p $(DIST_DIR)
 	@for target in "darwin amd64" "darwin arm64" "linux amd64" "linux arm64" "windows amd64"; do \
 		set -- $$target; \
@@ -54,10 +66,12 @@ build-all:
 		CGO_ENABLED=0 GOOS=$$GOOS GOARCH=$$GOARCH $(GO) build -trimpath -ldflags="$(LDFLAGS)" -o "$(DIST_DIR)/$(BIN_NAME)_$$GOOS_$$GOARCH$$EXT" $(CMD_PATH); \
 	done
 
-install-local: build
+install-local: build build-helper
 	@mkdir -p $$HOME/.local/bin
 	@install -m 755 $(BIN_PATH) $$HOME/.local/bin/$(BIN_NAME)
+	@install -m 755 $(HELPER_PATH) $$HOME/.local/bin/$(HELPER_ASSET)
 	@echo "Installed $(BIN_NAME) to $$HOME/.local/bin/$(BIN_NAME)"
+	@echo "Installed $(HELPER_ASSET) to $$HOME/.local/bin/$(HELPER_ASSET)"
 
 clean:
 	@rm -rf $(DIST_DIR)

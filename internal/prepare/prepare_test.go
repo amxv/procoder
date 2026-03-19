@@ -241,6 +241,44 @@ func TestRunPrepareFailsWhenLFSIsDetected(t *testing.T) {
 	assertCode(t, err, errs.CodeLFSUnsupported)
 }
 
+func TestHelperCandidatePathsPreferPackagedHelperAssetNextToExecutable(t *testing.T) {
+	executablePath := filepath.Join("/tmp", "procoder-install", "bin", "procoder-bin")
+	candidates := helperCandidatePaths("", "", executablePath)
+
+	if len(candidates) != 2 {
+		t.Fatalf("unexpected candidate count: got %d want 2 (%v)", len(candidates), candidates)
+	}
+	if got, want := candidates[0], filepath.Join("/tmp", "procoder-install", "bin", "procoder-return_linux_amd64"); got != want {
+		t.Fatalf("unexpected first candidate: got %q want %q", got, want)
+	}
+	if got, want := candidates[1], filepath.Join("/tmp", "procoder-install", "bin", "procoder-return"); got != want {
+		t.Fatalf("unexpected second candidate: got %q want %q", got, want)
+	}
+}
+
+func TestResolveHelperBinaryFromCandidatesPrefersPackagedHelperAsset(t *testing.T) {
+	installDir := t.TempDir()
+	executablePath := filepath.Join(installDir, "procoder-bin")
+	helperAssetPath := filepath.Join(installDir, "procoder-return_linux_amd64")
+	helperBinaryPath := filepath.Join(installDir, "procoder-return")
+
+	if err := os.WriteFile(helperAssetPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write packaged helper failed: %v", err)
+	}
+	if err := os.WriteFile(helperBinaryPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write sibling helper failed: %v", err)
+	}
+
+	resolved, err := resolveHelperBinaryFromCandidates(helperCandidatePaths("", "", executablePath))
+	if err != nil {
+		t.Fatalf("resolveHelperBinaryFromCandidates returned error: %v", err)
+	}
+
+	if resolved != helperAssetPath {
+		t.Fatalf("unexpected helper path: got %q want %q", resolved, helperAssetPath)
+	}
+}
+
 func assertCode(t *testing.T, err error, want errs.Code) {
 	t.Helper()
 	if err == nil {

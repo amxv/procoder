@@ -27,7 +27,7 @@ The main user flow is:
 - `internal/returnpkg/`: `./procoder-return` implementation.
 - `internal/apply/`: `procoder apply` implementation.
 - `bin/procoder.js`: npm shim that invokes packaged native binary.
-- `scripts/postinstall.js`: downloads release binary on install, falls back to `go build`.
+- `scripts/postinstall.js`: downloads or builds both the host CLI binary and the packaged `linux/amd64` helper.
 - `.github/workflows/release.yml`: tag-driven release pipeline.
 
 ## Exchange Model
@@ -65,6 +65,7 @@ Use `make` targets:
 - `make lint`
 - `make check`
 - `make build`
+- `make build-helper`
 - `make build-all`
 - `make install-local`
 
@@ -91,6 +92,7 @@ Phase-oriented validation:
 
 2. Keep binary naming convention unchanged unless you also update postinstall/workflow:
 - release assets: `<cli>_<goos>_<goarch>[.exe]`
+- packaged helper asset: `procoder-return_linux_amd64`
 - npm-installed binary path: `bin/<cli>-bin` (or `.exe` on Windows)
 
 3. If adding dependencies, commit `go.sum` and optionally enable Go cache in workflow.

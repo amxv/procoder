@@ -14,6 +14,7 @@ Maintainer notes for this template repository.
 ```bash
 make check
 make build
+make build-helper
 ./dist/procoder --help
 ```
 
@@ -23,6 +24,8 @@ Install command locally:
 make install-local
 procoder --help
 ```
+
+`make install-local` installs both `procoder` and `procoder-return_linux_amd64` into `~/.local/bin`.
 
 ## Release process
 
@@ -40,7 +43,8 @@ make release-tag VERSION=0.1.0
 
 3. GitHub Actions `release` workflow runs automatically:
 - quality checks
-- cross-platform binary build
+- cross-platform `procoder` binary build
+- packaged `procoder-return_linux_amd64` helper build
 - GitHub release publish
 - npm publish
 
