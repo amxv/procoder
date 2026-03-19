@@ -2,49 +2,68 @@
 
 `procoder` is a CLI for getting real Git commits back from ChatGPT's coding sandbox.
 
-It is built for a very specific workflow:
+ChatGPT 5.4 Pro is the best coding model, but it is not available in Codex. `procoder` solves that specific problem: your repository stays local, ChatGPT works inside its locked-down sandbox, and you still get real commits back through a clean upload/download workflow powered by `git bundle`.
 
-- your local repository lives on your machine
-- ChatGPT can code inside its locked-down sandbox, but it cannot reach your Git remote or your local filesystem over the network
-- you still want ChatGPT to work on a real branch, make real commits, and hand the result back in a way that applies cleanly to your repo
+The workflow is simple:
 
-`procoder` bridges that gap with an upload/download exchange built on zip files and `git bundle`.
+1. You run `procoder prepare` and upload the generated zip.
+2. ChatGPT works inside that package and gives you an optimized incremental Git bundle as a zip file.
+3. You run `procoder apply`, which applies the commit ChatGPT made.
 
-## Why this exists
+It is Git-native, not a patch-copying workaround.
 
-ChatGPT 5.4 Pro is the best coding model.
+## Install
 
-But it is not available in Codex, which is where many developers normally access OpenAI models for coding. `procoder` bridges that gap by letting you use ChatGPT's sandbox workflow and still get real Git commits back into your local repository.
+Install globally with npm:
 
-`procoder` turns that limitation into a workflow:
+```bash
+npm i -g procoder-cli
+procoder --help
+```
 
-1. You prepare a clean, portable task package from your repo.
-2. ChatGPT works inside that package, commits on a prepared branch, and exports only the incremental Git result.
-3. You apply that result locally so it feels like ChatGPT committed to your repo for you.
+## Quick Start
 
-## How the round trip feels
+```bash
+procoder prepare
+```
 
-From the perspective of a user who just wants a coding task done, the normal flow is:
+Upload the generated task package to ChatGPT and give it a prompt like:
 
-1. Run `procoder prepare` in a clean repo, then upload the generated `procoder-task-<exchange-id>.zip` to ChatGPT with your task.
-2. ChatGPT works in that repo, commits on the already-prepared task branch, then runs `./procoder-return` to create a small return package.
-3. Download `procoder-return-<exchange-id>.zip` and run `procoder apply <return-package.zip>` in your original repo.
+```text
+Make the requested changes in this repository.
 
-That is the whole user story. It is Git-native, not a patch-copying workaround.
+Commit them on the prepared branch.
+
+Then run ./procoder-return and give me the sandbox path to the generated zip.
+```
+
+After downloading the return package locally:
+
+```bash
+procoder apply procoder-return-<exchange-id>.zip
+```
+
+If you want to inspect the import first:
+
+```bash
+procoder apply procoder-return-<exchange-id>.zip --dry-run
+```
+
+## Why `git bundle` is the right primitive
+
+`git bundle` is what makes this workflow feel native instead of fragile.
+
+It lets `procoder` move Git commits, trees, blobs, and refs as a portable file, without requiring a network connection or a Git server. That matters because the ChatGPT sandbox can work with Git locally, but it cannot push to your remote.
+
+Using an incremental bundle also keeps the return package small. The sandbox sends back only the objects created after `prepare`, not the whole repository again.
 
 ## Workflow Diagram
 
 ```mermaid
 flowchart TD
-    A[Local Git repo] --> B[procoder prepare]
-    B --> C[procoder-task-<exchange-id>.zip]
-    C --> D[Upload to ChatGPT sandbox]
-    D --> E[ChatGPT edits code<br/>and commits on prepared branch]
-    E --> F[./procoder-return]
-    F --> G[procoder-return-<exchange-id>.zip]
-    G --> H[Download to local machine]
-    H --> I[procoder apply]
-    I --> J[Local task branch updated<br/>with ChatGPT commits]
+    A[Local Git repo] -->|procoder prepare| B[Task zip]
+    B -->|Upload to ChatGPT| C[ChatGPT codes, commits on the prepared branch,<br/>and runs the included ./procoder-return binary]
+    C -->|Download return zip and run procoder apply| D[Local task branch updated]
 ```
 
 ## The Three Tools
@@ -59,7 +78,7 @@ It creates a dedicated task branch, builds a sanitized export of your repo, inje
 
 Runs inside the exported repository in the ChatGPT sandbox.
 
-It checks that the work was done on the allowed task branch family, bundles only the new Git objects and ref updates, and writes a return zip for download.
+It is a simple agent-friendly binary with no arguments or subcommands. After making one or more commits, the agent runs `./procoder-return`, and then sends back the path to the generated zip file.
 
 ### `procoder apply`
 
@@ -105,54 +124,6 @@ When you run `procoder apply`, the CLI verifies the bundle, imports it into a te
 If the branch moved locally, or the return package tries to update something outside the allowed exchange branch family, `procoder` fails clearly instead of guessing.
 
 That gives you the practical feeling of "ChatGPT committed to my repo", while still keeping the operation local and controlled.
-
-## Why `git bundle` is the right primitive
-
-`git bundle` is what makes this workflow feel native instead of fragile.
-
-It lets `procoder` move Git commits, trees, blobs, and refs as a portable file, without requiring a network connection or a Git server. That matters because the ChatGPT sandbox can work with Git locally, but it cannot push to your remote.
-
-Using an incremental bundle also keeps the return package small. The sandbox sends back only the objects created after `prepare`, not the whole repository again.
-
-## Install
-
-Install globally with npm:
-
-```bash
-npm i -g procoder-cli
-procoder --help
-```
-
-The installer fetches two binaries when release assets are available:
-
-- the local `procoder` CLI for your machine
-- the packaged `linux/amd64` `procoder-return` helper used inside task packages
-
-If release assets are unavailable, `scripts/postinstall.js` falls back to building both binaries locally with Go.
-
-## Quick Start
-
-```bash
-procoder prepare
-```
-
-Upload the generated task package to ChatGPT and give it a prompt like:
-
-```text
-Make the requested changes in this repository, commit them on the prepared branch, then run ./procoder-return and give me the sandbox path to the generated zip.
-```
-
-After downloading the return package locally:
-
-```bash
-procoder apply procoder-return-<exchange-id>.zip
-```
-
-If you want to inspect the import first:
-
-```bash
-procoder apply procoder-return-<exchange-id>.zip --dry-run
-```
 
 ## Current V1 Constraints
 
