@@ -24,11 +24,12 @@ func Run(args []string, stdout, stderr io.Writer) error {
 		printRootHelp(stdout)
 		return nil
 	}
-
-	switch args[0] {
-	case "version":
+	if len(args) == 1 && isVersionArg(args[0]) {
 		_, _ = fmt.Fprintf(stdout, "%s %s\n", commandName, version)
 		return nil
+	}
+
+	switch args[0] {
 	case "prepare":
 		if len(args) > 1 && isHelpArg(args[1]) {
 			printPrepareHelp(stdout)
@@ -172,22 +173,26 @@ func isHelpArg(v string) bool {
 	}
 }
 
+func isVersionArg(v string) bool {
+	return v == "--version"
+}
+
 func printRootHelp(w io.Writer) {
 	writeLines(w,
 		"procoder",
 		"",
 		"Usage:",
+		"  procoder [--version]",
 		"  procoder <command> [arguments]",
 		"",
 		"Commands:",
 		"  prepare                        create a task package",
 		"  apply <return-package.zip>     apply a return package",
-		"  version                        print CLI version",
 		"",
 		"Examples:",
+		"  procoder --version",
 		"  procoder prepare",
 		"  procoder apply procoder-return-<exchange-id>.zip --dry-run",
-		"  procoder version",
 	)
 }
 

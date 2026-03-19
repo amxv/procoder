@@ -31,13 +31,34 @@ func TestRunVersion(t *testing.T) {
 	var out bytes.Buffer
 	var errBuf bytes.Buffer
 
-	err := Run([]string{"version"}, &out, &errBuf)
+	err := Run([]string{"--version"}, &out, &errBuf)
 	if err != nil {
 		t.Fatalf("Run returned error: %v", err)
 	}
 
 	if !strings.Contains(out.String(), "procoder ") {
 		t.Fatalf("unexpected output: %q", out.String())
+	}
+}
+
+func TestRunVersionSubcommandUnknown(t *testing.T) {
+	var out bytes.Buffer
+	var errBuf bytes.Buffer
+
+	err := Run([]string{"version"}, &out, &errBuf)
+	if err == nil {
+		t.Fatal("expected error for removed version subcommand")
+	}
+
+	typed, ok := errs.As(err)
+	if !ok {
+		t.Fatalf("expected typed error, got %T", err)
+	}
+	if typed.Code != errs.CodeUnknownCommand {
+		t.Fatalf("unexpected error code: %s", typed.Code)
+	}
+	if !strings.Contains(typed.Message, "unknown command") {
+		t.Fatalf("expected unknown command message, got %q", typed.Message)
 	}
 }
 

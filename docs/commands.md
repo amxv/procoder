@@ -86,24 +86,24 @@ Default behavior is:
 
 If the prepared task branch moved locally, `procoder apply` fails with `BRANCH_MOVED` and suggests retrying with `--namespace`.
 
-## `procoder version`
+## `procoder --version`
 
 Print the installed CLI version:
 
 ```bash
-procoder version
+procoder --version
 ```
 
 ## Command Summary
 
 ```bash
 procoder --help
+procoder --version
 procoder prepare
 procoder apply <return-package.zip>
 procoder apply <return-package.zip> --dry-run
 procoder apply <return-package.zip> --namespace <prefix>
 procoder apply <return-package.zip> --checkout
-procoder version
 ```
 
 ## Common Failure Shapes
