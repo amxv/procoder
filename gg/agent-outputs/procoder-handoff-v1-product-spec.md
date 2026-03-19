@@ -1,12 +1,26 @@
-# procoder Handoff V1 Product Spec
+# procoder Exchange V1 Product Spec
 
 ## Status
 
 Working product spec based on the current design discussion. This document captures the agreed CLI surface, workflow, protocol expectations, constraints, and reasoning. It intentionally stops short of implementation details.
 
+## Canonical Terminology
+
+- `exchange`
+  One full round trip: local prepare, remote work, remote return, local apply.
+
+- `exchange ID`
+  Stable identifier that ties the task package and return package together.
+
+- `task package`
+  The zip created by `procoder prepare` and uploaded to ChatGPT.
+
+- `return package`
+  The zip created by `./procoder-return` and consumed by `procoder apply`.
+
 ## Problem
 
-The goal of `procoder` is to support an offline coding handoff workflow between:
+The goal of `procoder` is to support an offline coding exchange workflow between:
 
 - a local developer repository
 - a locked-down ChatGPT coding container with common developer tools but no normal internet access
@@ -14,11 +28,11 @@ The goal of `procoder` is to support an offline coding handoff workflow between:
 The workflow should feel simple:
 
 1. The local user runs `procoder prepare` in a repository.
-2. The tool produces a clean export zip and creates a dedicated task branch.
-3. The user uploads that zip to ChatGPT and asks the model to do the work.
-4. The model commits on the prepared branch and runs a bundled helper binary named `procoder-handoff`.
-5. The helper produces a reply zip.
-6. The local user runs `procoder apply <reply.zip>`.
+2. The tool produces a task package and creates a dedicated task branch.
+3. The user uploads that task package to ChatGPT and asks the model to do the work.
+4. The model commits on the prepared branch and runs a bundled helper binary named `procoder-return`.
+5. The helper produces a return package.
+6. The local user runs `procoder apply <return-package.zip>`.
 7. The returned commits are integrated into the local repository safely and with minimal friction.
 
 ## Product Goals
@@ -34,8 +48,8 @@ The workflow should feel simple:
 
 - No Git LFS support.
 - No submodule support.
-- No tag updates in the reply/apply flow.
-- No prompt generation bundled into the prepared zip.
+- No tag updates in the return/apply flow.
+- No prompt generation bundled into the task package.
 - No persistent `.procoder` directory committed into user repositories.
 - No complicated policy surface with many public modes or flags.
 
@@ -47,7 +61,7 @@ The current ChatGPT container target is:
 - `x86_64`
 - `linux/amd64`
 
-The bundled helper should therefore be a small `linux/amd64` Go binary named `procoder-handoff`.
+The bundled helper should therefore be a small `linux/amd64` Go binary named `procoder-return`.
 
 ## End-User CLI Surface
 
@@ -56,13 +70,13 @@ The bundled helper should therefore be a small `linux/amd64` Go binary named `pr
 Primary commands:
 
 - `procoder prepare`
-- `procoder apply <reply.zip>`
-- `procoder apply <reply.zip> --dry-run`
+- `procoder apply <return-package.zip>`
+- `procoder apply <return-package.zip> --dry-run`
 
 Secondary power-user flags:
 
-- `procoder apply <reply.zip> --namespace <prefix>`
-- `procoder apply <reply.zip> --checkout`
+- `procoder apply <return-package.zip> --namespace <prefix>`
+- `procoder apply <return-package.zip> --checkout`
 
 Notes:
 
@@ -76,10 +90,10 @@ The agent-side experience should be minimal:
 
 1. work in the exported repository
 2. commit changes normally
-3. run `./procoder-handoff`
+3. run `./procoder-return`
 4. return the generated zip path to the user as a `sandbox:` link
 
-No subcommand should be required in the common path. The default behavior of `procoder-handoff` is to generate the reply zip.
+No subcommand should be required in the common path. The default behavior of `procoder-return` is to generate the return package.
 
 ## Default Workflow
 
@@ -88,18 +102,18 @@ No subcommand should be required in the common path. The default behavior of `pr
 Default behavior:
 
 - validate that the source repository is clean
-- create a dedicated task branch for the handoff
+- create a dedicated task branch for the exchange
 - do not switch the local working tree to that branch
 - build a clean transport repository in a temporary location
 - include all local branches and tags as read-only context
 - strip remotes, credentials, hooks, logs, reflogs, and unrelated config
-- inject the `procoder-handoff` helper binary
+- inject the `procoder-return` helper binary
 - configure the exported repo so commits work immediately:
   - set `user.name`
   - set `user.email`
   - disable `commit.gpgsign`
 - check out the task branch in the exported repo
-- produce the prepared zip
+- produce the task package
 
 The exported repository should be broad in context but narrow in what it is allowed to hand back.
 
@@ -111,13 +125,13 @@ Default behavior:
 - the model does not need to create its own branch in the normal case
 - the model can inspect old local branches and tags for context
 - the model commits on the prepared task branch
-- when finished, the model runs `./procoder-handoff`
+- when finished, the model runs `./procoder-return`
 
 ### `procoder apply`
 
 Default behavior:
 
-- read and validate the reply zip
+- read and validate the return package
 - verify the bundle prerequisites
 - update the prepared task branch locally when it is safe to do so
 - create any additional returned task-family branches when allowed and non-conflicting
@@ -125,22 +139,22 @@ Default behavior:
 
 The default should be "update when safe, otherwise fail."
 
-This is the right default for the main workflow because `prepare` created the task branch specifically for the agent handoff. It should feel like the agent made commits on that branch locally.
+This is the right default for the main workflow because `prepare` created the task branch specifically for the exchange. It should feel like the agent made commits on that branch locally.
 
 ## Branch Model
 
 ### Task Branch Family
 
-Each handoff should have a dedicated branch family keyed by the handoff ID.
+Each exchange should have a dedicated branch family keyed by the exchange ID.
 
 Example shape:
 
-- `procoder/<handoff-id>`
-- `procoder/<handoff-id>/...`
+- `procoder/<exchange-id>`
+- `procoder/<exchange-id>/...`
 
 Rules:
 
-- the writable branch family is restricted to the current handoff ID
+- the writable branch family is restricted to the current exchange ID
 - the helper should only export changes for that allowed branch family by default
 - other branches and tags are available for read-only context
 
@@ -149,14 +163,14 @@ This separation is important:
 - repository context can be broad
 - returned mutable refs must stay narrow
 
-## Prepared Zip Contents
+## Task Package Contents
 
-The prepared zip should contain:
+The task package should contain:
 
 - a clean exported working tree
 - a sanitized `.git` directory
-- the `procoder-handoff` helper binary at the repo root
-- machine-readable handoff metadata
+- the `procoder-return` helper binary at the repo root
+- machine-readable exchange metadata
 
 Suggested layout:
 
@@ -164,15 +178,15 @@ Suggested layout:
 <repo-name>/
   ...tracked files...
   .git/
-  .procoder/
-    handoff.json
-  procoder-handoff
+    procoder/
+      exchange.json
+  procoder-return
 ```
 
-The prepared zip should not contain:
+The task package should not contain:
 
 - remote credentials
-- remote definitions that are unnecessary for the handoff
+- remote definitions that are unnecessary for the exchange
 - hooks
 - reflogs
 - working-tree junk
@@ -180,19 +194,25 @@ The prepared zip should not contain:
 - untracked files
 - prompt files
 
-## Reply Zip Contents
+The default user-facing task package filename should be:
 
-The reply zip should remain mechanical and small.
+```text
+./procoder-task-<exchange-id>.zip
+```
+
+## Return Package Contents
+
+The return package should remain mechanical and small.
 
 Suggested layout:
 
 ```text
-procoder-reply-<handoff-id>.zip
-  procoder-reply.json
-  procoder.bundle
+procoder-return-<exchange-id>.zip
+  procoder-return.json
+  procoder-return.bundle
 ```
 
-The reply should contain:
+The return package should contain:
 
 - the bundle with new Git objects and advertised refs
 - a small machine-readable manifest describing intended ref updates
@@ -209,7 +229,7 @@ In practice that means:
 
 - if the prepared task branch still points to the expected base commit, update it to the returned tip
 - if the branch moved locally, fail
-- if the reply attempts to touch refs outside the allowed task branch family, fail unless a special-case override exists
+- if the return package attempts to touch refs outside the allowed task branch family, fail unless a special-case override exists
 
 ### `--namespace`
 
@@ -251,32 +271,32 @@ If the prepared task branch moved locally:
 - show the expected commit and current commit
 - suggest `--namespace <prefix>` if the user wants to import the returned work under a new branch name instead
 
-If the reply contains refs outside the allowed task branch family:
+If the return package contains refs outside the allowed task branch family:
 
 - explain which refs were rejected
-- explain that V1 only allows the current handoff's task branch family by default
+- explain that V1 only allows the current exchange's task branch family by default
 
 If bundle verification fails:
 
-- explain that the local repo is missing required prerequisite objects or the reply is invalid
+- explain that the local repo is missing required prerequisite objects or the return package is invalid
 
-If the reply contains no new commits:
+If the return package contains no new commits:
 
 - explain that nothing new was detected and no apply was performed
 
 ### Agent-Side Failure Examples
 
-If the exported repo is dirty when `./procoder-handoff` runs:
+If the exported repo is dirty when `./procoder-return` runs:
 
-- explain that the agent must commit or discard local changes before producing the reply zip
+- explain that the agent must commit or discard local changes before producing the return package
 
 If no new commits are found on the allowed task branch family:
 
 - explain that there is nothing to export
 
-If the helper cannot determine a valid handoff repo:
+If the helper cannot determine a valid exchange repo:
 
-- explain that it must be run from the prepared export
+- explain that it must be run from a prepared task package
 
 These errors should include short, concrete remediation hints rather than generic failures.
 
@@ -303,7 +323,7 @@ The remote model benefits from rich Git context:
 - prior implementation paths
 - tags that may mark releases or important snapshots
 
-That context is valuable for real software work, even though only the current handoff branch family is allowed to come back as mutable output.
+That context is valuable for real software work, even though only the current exchange branch family is allowed to come back as mutable output.
 
 ### Why The Default Apply Policy Is Update-When-Safe
 
@@ -321,15 +341,15 @@ Branch movement and naming conflicts are important edge cases, but not the main 
 
 `--namespace` gives users and agents a clean recovery path without turning the normal UX into a policy-heavy interface.
 
-### Why The Helper Is Named `procoder-handoff`
+### Why The Helper Is Named `procoder-return`
 
-The helper is not a general agent CLI. It exists specifically to produce the return handoff artifact from the prepared export. The name should reflect that focused purpose.
+The helper is not a general agent CLI. It exists specifically to produce the return package from the prepared task package. The name should reflect that focused purpose.
 
 ## Deferred Internal Details
 
 These details are intentionally deferred to the implementation discussion:
 
-- exact handoff ID format
+- exact exchange ID format
 - exact default zip naming scheme
 - exact manifest schema fields
 - exact implementation strategy for building the clean export repo
@@ -341,12 +361,12 @@ These details are intentionally deferred to the implementation discussion:
 
 The agreed V1 product shape is:
 
-- `procoder prepare` creates a dedicated task branch, builds a clean export, and produces a zip
-- the export includes all local branches and tags for context, but only the current handoff branch family is writable
-- the remote agent commits and runs `./procoder-handoff`
-- `procoder apply <reply.zip>` updates the prepared task branch locally when safe
-- `procoder apply <reply.zip> --dry-run` shows the plan without changing anything
-- `procoder apply <reply.zip> --namespace <prefix>` is the main recovery path for conflicts or alternate import behavior
-- `procoder apply <reply.zip> --checkout` optionally checks out the updated task branch after apply
+- `procoder prepare` creates a dedicated task branch, builds a clean export, and produces a task package
+- the export includes all local branches and tags for context, but only the current exchange branch family is writable
+- the remote agent commits and runs `./procoder-return`
+- `procoder apply <return-package.zip>` updates the prepared task branch locally when safe
+- `procoder apply <return-package.zip> --dry-run` shows the plan without changing anything
+- `procoder apply <return-package.zip> --namespace <prefix>` is the main recovery path for conflicts or alternate import behavior
+- `procoder apply <return-package.zip> --checkout` optionally checks out the updated task branch after apply
 
 This keeps the workflow simple for both humans and agents while preserving the important Git semantics needed for real repository work.
