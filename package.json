@@ -1,0 +1,47 @@
+{
+  "name": "@amxv/go-cli-template",
+  "version": "0.1.0",
+  "description": "Template for shipping a Go CLI via npm with GitHub release automation",
+  "license": "MIT",
+  "author": "amxv",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amxv/go-cli-template.git"
+  },
+  "homepage": "https://github.com/amxv/go-cli-template#readme",
+  "bugs": {
+    "url": "https://github.com/amxv/go-cli-template/issues"
+  },
+  "bin": {
+    "pro-coder": "bin/pro-coder.js"
+  },
+  "config": {
+    "cliBinaryName": "pro-coder"
+  },
+  "files": [
+    "bin/pro-coder.js",
+    "scripts/postinstall.js",
+    "cmd",
+    "internal",
+    "go.mod",
+    "README.md",
+    "AGENTS.md",
+    "CONTRIBUTORS.md",
+    "Makefile"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "test": "node --check bin/pro-coder.js && node --check scripts/postinstall.js",
+    "lint": "npm run test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "go",
+    "cli",
+    "template",
+    "npm",
+    "release"
+  ]
+}
