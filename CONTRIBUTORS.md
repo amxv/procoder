@@ -51,7 +51,7 @@ make release-tag VERSION=0.1.0
 Set via GitHub CLI:
 
 ```bash
-gh secret set NPM_TOKEN --repo amxv/go-cli-template
+gh secret set NPM_TOKEN --repo amxv/pro-coder
 ```
 
 ## npm token setup

@@ -1,4 +1,4 @@
-# go-cli-template
+# pro-coder
 
 Minimal template for shipping a Go CLI with:
 
@@ -9,7 +9,7 @@ Minimal template for shipping a Go CLI with:
 ## Install (template example)
 
 ```bash
-npm i -g @amxv/go-cli-template
+npm i -g @amxv/pro-coder
 pro-coder --help
 ```
 

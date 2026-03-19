@@ -1,16 +1,16 @@
 {
-  "name": "@amxv/go-cli-template",
+  "name": "@amxv/pro-coder",
   "version": "0.1.0",
   "description": "Template for shipping a Go CLI via npm with GitHub release automation",
   "license": "MIT",
   "author": "amxv",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amxv/go-cli-template.git"
+    "url": "git+https://github.com/amxv/pro-coder.git"
   },
-  "homepage": "https://github.com/amxv/go-cli-template#readme",
+  "homepage": "https://github.com/amxv/pro-coder#readme",
   "bugs": {
-    "url": "https://github.com/amxv/go-cli-template/issues"
+    "url": "https://github.com/amxv/pro-coder/issues"
   },
   "bin": {
     "pro-coder": "bin/pro-coder.js"

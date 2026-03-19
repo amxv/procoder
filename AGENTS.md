@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Guidance for coding agents working in `go-cli-template`.
+Guidance for coding agents working in `pro-coder`.
 
 ## Purpose
 

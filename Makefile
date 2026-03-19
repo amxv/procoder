@@ -11,7 +11,7 @@ LDFLAGS ?= -s -w
 .PHONY: help fmt test vet lint check build build-all install-local clean release-tag
 
 help:
-	@echo "go-cli-template command runner"
+	@echo "pro-coder command runner"
 	@echo ""
 	@echo "Targets:"
 	@echo "  make fmt          - format Go files"
