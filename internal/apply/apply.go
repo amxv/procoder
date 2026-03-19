@@ -26,6 +26,7 @@ type Options struct {
 	CWD               string
 	ReturnPackagePath string
 	Namespace         string
+	Checkout          bool
 }
 
 type Action string
@@ -68,81 +69,176 @@ type Plan struct {
 	Summary           Summary
 }
 
+type Result struct {
+	Plan          Plan
+	CheckedOutRef string
+}
+
 type importedUpdate struct {
 	Update      exchange.RefUpdate
 	ImportRef   string
 	Destination string
 }
 
+type preparedRun struct {
+	Runner         gitx.Runner
+	Namespace      string
+	ReturnRecord   exchange.Return
+	Plan           Plan
+	ReturnPackage  string
+	ImportedPrefix string
+}
+
 func RunDryRun(opts Options) (plan Plan, runErr error) {
+	prepared, cleanup, err := prepareRun(opts)
+	if err != nil {
+		return Plan{}, err
+	}
+	defer func() {
+		cleanupErr := cleanup()
+		if cleanupErr != nil && runErr == nil {
+			runErr = cleanupErr
+		}
+	}()
+
+	return prepared.Plan, nil
+}
+
+func Run(opts Options) (result Result, runErr error) {
+	prepared, cleanup, err := prepareRun(opts)
+	if err != nil {
+		return Result{}, err
+	}
+	defer func() {
+		cleanupErr := cleanup()
+		if cleanupErr != nil && runErr == nil {
+			runErr = cleanupErr
+		}
+	}()
+
+	if conflict, ok := actionableConflict(prepared.Plan.Entries); ok {
+		return Result{}, conflictToError(conflict, prepared.Namespace)
+	}
+
+	if err := validateCheckedOutTargets(prepared.Runner, prepared.Plan.Entries, prepared.Namespace); err != nil {
+		return Result{}, err
+	}
+
+	if err := applyPlanAtomically(prepared.Runner, prepared.Plan.Entries); err != nil {
+		if translated := translateWriteFailure(prepared.Runner, prepared.Plan.Entries, prepared.Namespace); translated != nil {
+			return Result{}, translated
+		}
+		return Result{}, errs.Wrap(errs.CodeInternal, "apply ref updates", err)
+	}
+
+	checkedOutRef := ""
+	if opts.Checkout {
+		defaultRef, err := defaultCheckoutRef(prepared.ReturnRecord, prepared.Namespace)
+		if err != nil {
+			return Result{}, err
+		}
+		if err := checkoutBranch(prepared.Runner, defaultRef); err != nil {
+			return Result{}, err
+		}
+		checkedOutRef = defaultRef
+	}
+
+	return Result{
+		Plan:          prepared.Plan,
+		CheckedOutRef: checkedOutRef,
+	}, nil
+}
+
+func FormatSuccess(result Result) string {
+	lines := []string{
+		"Applied return package.",
+		fmt.Sprintf("Exchange: %s", result.Plan.ExchangeID),
+		fmt.Sprintf("Return package: %s", result.Plan.ReturnPackagePath),
+		fmt.Sprintf("Namespace: %s", displayNamespace(result.Plan.Namespace)),
+		"",
+		"Summary:",
+		fmt.Sprintf("  creates: %d", result.Plan.Summary.Creates),
+		fmt.Sprintf("  updates: %d", result.Plan.Summary.Updates),
+		fmt.Sprintf("  conflicts: %d", result.Plan.Summary.Conflicts),
+	}
+	if strings.TrimSpace(result.CheckedOutRef) != "" {
+		lines = append(lines, fmt.Sprintf("Checked out: %s", result.CheckedOutRef))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func prepareRun(opts Options) (prepared preparedRun, cleanup func() error, err error) {
 	cwd, err := resolveCWD(opts.CWD)
 	if err != nil {
-		return Plan{}, errs.Wrap(errs.CodeInternal, "resolve current working directory", err)
+		return preparedRun{}, nil, errs.Wrap(errs.CodeInternal, "resolve current working directory", err)
 	}
 
 	repoRoot, err := resolveRepo(cwd)
 	if err != nil {
-		return Plan{}, err
+		return preparedRun{}, nil, err
 	}
 	runner := gitx.NewRunner(repoRoot)
 
 	returnPackagePath, err := resolveReturnPackagePath(cwd, opts.ReturnPackagePath)
 	if err != nil {
-		return Plan{}, err
+		return preparedRun{}, nil, err
 	}
 
 	namespacePrefix, err := normalizeNamespacePrefix(runner, opts.Namespace)
 	if err != nil {
-		return Plan{}, err
+		return preparedRun{}, nil, err
 	}
 
 	extractedDir, cleanupExtract, err := extractReturnPackage(returnPackagePath)
 	if err != nil {
-		return Plan{}, err
+		return preparedRun{}, nil, err
 	}
-	defer cleanupExtract()
 
 	returnRecordPath := filepath.Join(extractedDir, returnJSONName)
 	ret, err := readAndValidateReturnRecord(returnRecordPath)
 	if err != nil {
-		return Plan{}, err
+		cleanupExtract()
+		return preparedRun{}, nil, err
 	}
 
 	bundlePath, err := resolveBundlePath(extractedDir, ret.BundleFile)
 	if err != nil {
-		return Plan{}, err
+		cleanupExtract()
+		return preparedRun{}, nil, err
 	}
 	if err := verifyBundle(runner, bundlePath); err != nil {
-		return Plan{}, err
+		cleanupExtract()
+		return preparedRun{}, nil, err
 	}
 
 	importNonce, err := randomNonce()
 	if err != nil {
-		return Plan{}, errs.Wrap(errs.CodeInternal, "create temporary import namespace", err)
+		cleanupExtract()
+		return preparedRun{}, nil, errs.Wrap(errs.CodeInternal, "create temporary import namespace", err)
 	}
 	importPrefix := importNamespacePrefix + "/" + importNonce
 
 	updates, err := buildImportedUpdates(ret, importPrefix, namespacePrefix)
 	if err != nil {
-		return Plan{}, err
+		cleanupExtract()
+		return preparedRun{}, nil, err
 	}
 	if err := fetchBundleRefs(runner, bundlePath, updates); err != nil {
-		return Plan{}, err
+		cleanupExtract()
+		return preparedRun{}, nil, err
 	}
-	defer func() {
-		cleanupErr := deleteImportRefs(runner, importPrefix)
-		if cleanupErr != nil && runErr == nil {
-			runErr = errs.Wrap(errs.CodeInternal, "clean temporary import refs", cleanupErr)
-		}
-	}()
 
 	if err := verifyImportedTips(runner, importPrefix, updates); err != nil {
-		return Plan{}, err
+		_ = deleteImportRefs(runner, importPrefix)
+		cleanupExtract()
+		return preparedRun{}, nil, err
 	}
 
-	plan, err = buildPlan(runner, returnPackagePath, namespacePrefix, ret, updates)
+	plan, err := buildPlan(runner, returnPackagePath, namespacePrefix, ret, updates)
 	if err != nil {
-		return Plan{}, err
+		_ = deleteImportRefs(runner, importPrefix)
+		cleanupExtract()
+		return preparedRun{}, nil, err
 	}
 
 	plan.Checks = []Check{
@@ -153,7 +249,23 @@ func RunDryRun(opts Options) (plan Plan, runErr error) {
 		{Name: "fetched ref tips", Detail: "imported OIDs exactly match procoder-return.json"},
 	}
 
-	return plan, nil
+	cleanup = func() error {
+		importCleanupErr := deleteImportRefs(runner, importPrefix)
+		cleanupExtract()
+		if importCleanupErr != nil {
+			return errs.Wrap(errs.CodeInternal, "clean temporary import refs", importCleanupErr)
+		}
+		return nil
+	}
+
+	return preparedRun{
+		Runner:         runner,
+		Namespace:      namespacePrefix,
+		ReturnRecord:   ret,
+		Plan:           plan,
+		ReturnPackage:  returnPackagePath,
+		ImportedPrefix: importPrefix,
+	}, cleanup, nil
 }
 
 func FormatDryRun(plan Plan) string {
@@ -233,6 +345,167 @@ func formatConflictLine(entry PlanEntry) string {
 	default:
 		return fmt.Sprintf("  CONFLICT %s %s", entry.ConflictCode, entry.DestinationRef)
 	}
+}
+
+func applyPlanAtomically(runner gitx.Runner, entries []PlanEntry) error {
+	commands := make([]string, 0, len(entries)+3)
+	commands = append(commands, "start")
+	for _, entry := range entries {
+		switch entry.Action {
+		case ActionCreate:
+			commands = append(commands, fmt.Sprintf("create %s %s", entry.DestinationRef, entry.NewOID))
+		case ActionUpdate:
+			commands = append(commands, fmt.Sprintf("update %s %s %s", entry.DestinationRef, entry.NewOID, entry.OldOID))
+		}
+	}
+	commands = append(commands, "prepare", "commit", "")
+
+	input := strings.Join(commands, "\n")
+	if _, err := runner.RunWithInput(input, "update-ref", "--stdin"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func actionableConflict(entries []PlanEntry) (PlanEntry, bool) {
+	for _, entry := range entries {
+		if entry.Action == ActionConflict {
+			return entry, true
+		}
+	}
+	return PlanEntry{}, false
+}
+
+func conflictToError(entry PlanEntry, namespace string) error {
+	switch entry.ConflictCode {
+	case errs.CodeBranchMoved:
+		return errs.New(
+			errs.CodeBranchMoved,
+			fmt.Sprintf("cannot update %s", entry.DestinationRef),
+			errs.WithDetails(
+				fmt.Sprintf("Expected old OID: %s", displayOID(entry.OldOID)),
+				fmt.Sprintf("Current local OID: %s", displayOID(entry.CurrentOID)),
+				fmt.Sprintf("Incoming OID: %s", displayOID(entry.NewOID)),
+			),
+			errs.WithHint(namespaceHint(namespace)),
+		)
+	case errs.CodeRefExists:
+		return errs.New(
+			errs.CodeRefExists,
+			fmt.Sprintf("cannot create %s because the destination ref already exists", entry.DestinationRef),
+			errs.WithDetails(
+				fmt.Sprintf("Existing local OID: %s", displayOID(entry.CurrentOID)),
+				fmt.Sprintf("Incoming OID: %s", displayOID(entry.NewOID)),
+			),
+			errs.WithHint(namespaceHint(namespace)),
+		)
+	default:
+		return errs.New(
+			errs.CodeInternal,
+			fmt.Sprintf("cannot apply %s due to an unsupported conflict type", entry.DestinationRef),
+		)
+	}
+}
+
+func namespaceHint(namespace string) string {
+	if strings.TrimSpace(namespace) == "" {
+		return "rerun with --namespace procoder-import to import under a new ref prefix"
+	}
+	return "rerun with a different --namespace prefix to import under a new ref prefix"
+}
+
+func validateCheckedOutTargets(runner gitx.Runner, entries []PlanEntry, namespace string) error {
+	headRef, err := readCurrentHeadRef(runner)
+	if err != nil {
+		return err
+	}
+	if headRef == "" {
+		return nil
+	}
+
+	for _, entry := range entries {
+		if entry.Action != ActionUpdate {
+			continue
+		}
+		if entry.DestinationRef != headRef {
+			continue
+		}
+		return errs.New(
+			errs.CodeTargetBranchCheckedOut,
+			fmt.Sprintf("cannot update checked-out branch %s", entry.DestinationRef),
+			errs.WithDetails(fmt.Sprintf("Current HEAD: %s", headRef)),
+			errs.WithHint(namespaceHint(namespace)),
+		)
+	}
+	return nil
+}
+
+func readCurrentHeadRef(runner gitx.Runner) (string, error) {
+	result, err := runner.Run("symbolic-ref", "--quiet", "HEAD")
+	if err == nil {
+		return strings.TrimSpace(result.Stdout), nil
+	}
+	if result.ExitCode == 1 {
+		return "", nil
+	}
+	return "", errs.Wrap(errs.CodeInternal, "resolve current checked-out branch", err)
+}
+
+func defaultCheckoutRef(ret exchange.Return, namespacePrefix string) (string, error) {
+	return destinationRef(ret.Task.RootRef, ret.ExchangeID, namespacePrefix)
+}
+
+func checkoutBranch(runner gitx.Runner, ref string) error {
+	if !strings.HasPrefix(ref, "refs/heads/") {
+		return errs.New(
+			errs.CodeInternal,
+			fmt.Sprintf("cannot checkout non-branch ref %s", ref),
+		)
+	}
+
+	shortRef := strings.TrimPrefix(ref, "refs/heads/")
+	if _, err := runner.Run("checkout", "--quiet", shortRef); err != nil {
+		return errs.Wrap(
+			errs.CodeInternal,
+			fmt.Sprintf("check out updated branch %s", ref),
+			err,
+		)
+	}
+	return nil
+}
+
+func translateWriteFailure(runner gitx.Runner, entries []PlanEntry, namespace string) error {
+	if err := validateCheckedOutTargets(runner, entries, namespace); err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if entry.Action != ActionCreate && entry.Action != ActionUpdate {
+			continue
+		}
+
+		currentOID, exists, err := resolveRefOID(runner, entry.DestinationRef)
+		if err != nil {
+			return nil
+		}
+
+		if entry.Action == ActionCreate {
+			if exists {
+				entry.CurrentOID = currentOID
+				entry.ConflictCode = errs.CodeRefExists
+				return conflictToError(entry, namespace)
+			}
+			continue
+		}
+
+		if !exists || currentOID != entry.OldOID {
+			entry.CurrentOID = currentOID
+			entry.ConflictCode = errs.CodeBranchMoved
+			return conflictToError(entry, namespace)
+		}
+	}
+
+	return nil
 }
 
 func resolveCWD(cwd string) (string, error) {
@@ -655,7 +928,16 @@ func buildPlan(runner gitx.Runner, returnPackagePath, namespacePrefix string, re
 				plan.Summary.Creates++
 			}
 		} else {
-			if !exists || currentOID != update.Update.OldOID {
+			if !exists {
+				if entry.Remapped {
+					entry.Action = ActionCreate
+					plan.Summary.Creates++
+				} else {
+					entry.Action = ActionConflict
+					entry.ConflictCode = errs.CodeBranchMoved
+					plan.Summary.Conflicts++
+				}
+			} else if currentOID != update.Update.OldOID {
 				entry.Action = ActionConflict
 				entry.ConflictCode = errs.CodeBranchMoved
 				plan.Summary.Conflicts++

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	stderrors "errors"
 	"fmt"
+	"io"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -28,10 +29,21 @@ func NewRunner(dir string) Runner {
 }
 
 func (r Runner) Run(args ...string) (Result, error) {
+	return r.run(nil, args...)
+}
+
+func (r Runner) RunWithInput(input string, args ...string) (Result, error) {
+	return r.run(strings.NewReader(input), args...)
+}
+
+func (r Runner) run(stdin io.Reader, args ...string) (Result, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = r.Dir
 	if len(r.Env) > 0 {
 		cmd.Env = append(cmd.Environ(), r.Env...)
+	}
+	if stdin != nil {
+		cmd.Stdin = stdin
 	}
 
 	var stdout bytes.Buffer

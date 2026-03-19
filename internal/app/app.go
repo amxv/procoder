@@ -15,6 +15,7 @@ const commandName = "procoder"
 var version = "dev"
 var runPrepare = prepare.Run
 var runApplyDryRun = apply.RunDryRun
+var runApply = apply.Run
 
 func Run(args []string, stdout, stderr io.Writer) error {
 	_ = stderr
@@ -57,22 +58,27 @@ func Run(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 
-		if !parsed.DryRun {
-			return errs.New(
-				errs.CodeNotImplemented,
-				"`procoder apply` write mode is not implemented yet",
-				errs.WithHint("rerun with `procoder apply <return-package.zip> --dry-run`"),
-			)
+		if parsed.DryRun {
+			plan, err := runApplyDryRun(apply.Options{
+				ReturnPackagePath: parsed.ReturnPackagePath,
+				Namespace:         parsed.Namespace,
+			})
+			if err != nil {
+				return err
+			}
+			writeLines(stdout, apply.FormatDryRun(plan))
+			return nil
 		}
 
-		plan, err := runApplyDryRun(apply.Options{
+		result, err := runApply(apply.Options{
 			ReturnPackagePath: parsed.ReturnPackagePath,
 			Namespace:         parsed.Namespace,
+			Checkout:          parsed.Checkout,
 		})
 		if err != nil {
 			return err
 		}
-		writeLines(stdout, apply.FormatDryRun(plan))
+		writeLines(stdout, apply.FormatSuccess(result))
 		return nil
 	default:
 		return errs.New(

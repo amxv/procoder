@@ -98,9 +98,15 @@ func TestRunPrepareCommand(t *testing.T) {
 
 func TestRunApplyDryRunCommand(t *testing.T) {
 	originalRunApplyDryRun := runApplyDryRun
+	originalRunApply := runApply
 	t.Cleanup(func() {
 		runApplyDryRun = originalRunApplyDryRun
+		runApply = originalRunApply
 	})
+	runApply = func(opts apply.Options) (apply.Result, error) {
+		t.Fatalf("write-mode apply should not be called during dry-run test: %#v", opts)
+		return apply.Result{}, nil
+	}
 
 	runApplyDryRun = func(opts apply.Options) (apply.Plan, error) {
 		if opts.ReturnPackagePath != "procoder-return-20260320-120000-a1b2c3.zip" {
@@ -152,24 +158,58 @@ func TestRunApplyDryRunCommand(t *testing.T) {
 	}
 }
 
-func TestRunApplyWriteModeNotImplementedInPhase4(t *testing.T) {
+func TestRunApplyWriteModeCommand(t *testing.T) {
+	originalRunApplyDryRun := runApplyDryRun
+	originalRunApply := runApply
+	t.Cleanup(func() {
+		runApplyDryRun = originalRunApplyDryRun
+		runApply = originalRunApply
+	})
+	runApplyDryRun = func(opts apply.Options) (apply.Plan, error) {
+		t.Fatalf("dry-run apply should not be called in write-mode test: %#v", opts)
+		return apply.Plan{}, nil
+	}
+	runApply = func(opts apply.Options) (apply.Result, error) {
+		if opts.ReturnPackagePath != "procoder-return-20260320-120000-a1b2c3.zip" {
+			t.Fatalf("unexpected return package path: %q", opts.ReturnPackagePath)
+		}
+		if opts.Namespace != "procoder-import" {
+			t.Fatalf("unexpected namespace: %q", opts.Namespace)
+		}
+		if !opts.Checkout {
+			t.Fatalf("expected checkout=true in apply options")
+		}
+		return apply.Result{
+			Plan: apply.Plan{
+				ExchangeID:        "20260320-120000-a1b2c3",
+				ReturnPackagePath: "/tmp/procoder-return-20260320-120000-a1b2c3.zip",
+				Namespace:         "procoder-import",
+				Summary:           apply.Summary{Creates: 1, Updates: 1},
+			},
+			CheckedOutRef: "refs/heads/procoder-import/20260320-120000-a1b2c3/task",
+		}, nil
+	}
+
 	var out bytes.Buffer
 	var errBuf bytes.Buffer
 
-	err := Run([]string{"apply", "procoder-return.zip"}, &out, &errBuf)
-	if err == nil {
-		t.Fatal("expected not implemented error")
+	err := Run([]string{
+		"apply",
+		"procoder-return-20260320-120000-a1b2c3.zip",
+		"--namespace",
+		"procoder-import",
+		"--checkout",
+	}, &out, &errBuf)
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
 	}
 
-	typed, ok := errs.As(err)
-	if !ok {
-		t.Fatalf("expected typed error, got %T", err)
+	got := out.String()
+	if !strings.Contains(got, "Applied return package.") {
+		t.Fatalf("expected apply success output, got: %q", got)
 	}
-	if typed.Code != errs.CodeNotImplemented {
-		t.Fatalf("unexpected code: got %s want %s", typed.Code, errs.CodeNotImplemented)
-	}
-	if !strings.Contains(typed.Hint, "--dry-run") {
-		t.Fatalf("expected --dry-run hint, got %q", typed.Hint)
+	if !strings.Contains(got, "Checked out: refs/heads/procoder-import/20260320-120000-a1b2c3/task") {
+		t.Fatalf("expected checked-out ref in output, got: %q", got)
 	}
 }
 

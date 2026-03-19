@@ -242,6 +242,225 @@ func TestRunDryRunDetectsNamespaceRefExistsConflict(t *testing.T) {
 	}
 }
 
+func TestRunApplySuccessNormalReturnPackage(t *testing.T) {
+	fixture := setupReturnFixture(t, mutateTaskRootCommit)
+
+	taskUpdate, ok := findUpdate(fixture.returnRecord.Updates, fixture.exchange.Task.RootRef)
+	if !ok {
+		t.Fatalf("expected task root update in return record")
+	}
+
+	result, err := Run(Options{
+		CWD:               fixture.sourceRepo.Dir,
+		ReturnPackagePath: fixture.returnPackagePath,
+	})
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+
+	if result.Plan.Summary.Updates != 1 || result.Plan.Summary.Creates != 0 || result.Plan.Summary.Conflicts != 0 {
+		t.Fatalf("unexpected apply summary: %#v", result.Plan.Summary)
+	}
+	if result.CheckedOutRef != "" {
+		t.Fatalf("did not expect checkout in default mode, got %q", result.CheckedOutRef)
+	}
+
+	gotTaskOID := strings.TrimSpace(fixture.sourceRepo.Git("rev-parse", fixture.exchange.Task.RootRef))
+	if gotTaskOID != taskUpdate.NewOID {
+		t.Fatalf("task branch was not updated: got %q want %q", gotTaskOID, taskUpdate.NewOID)
+	}
+
+	headRef := strings.TrimSpace(fixture.sourceRepo.Git("symbolic-ref", "--quiet", "HEAD"))
+	if headRef != "refs/heads/main" {
+		t.Fatalf("expected checkout to remain on main, got %q", headRef)
+	}
+
+	assertNoImportRefs(t, fixture.sourceRepo.Dir)
+}
+
+func TestRunApplySuccessNamespaceImport(t *testing.T) {
+	fixture := setupReturnFixture(t, mutateTaskRootCommit)
+	taskUpdate, ok := findUpdate(fixture.returnRecord.Updates, fixture.exchange.Task.RootRef)
+	if !ok {
+		t.Fatalf("expected task root update in return record")
+	}
+
+	const namespace = "procoder-import"
+	result, err := Run(Options{
+		CWD:               fixture.sourceRepo.Dir,
+		ReturnPackagePath: fixture.returnPackagePath,
+		Namespace:         namespace,
+	})
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+
+	if result.Plan.Summary.Creates == 0 {
+		t.Fatalf("expected namespace import to create destination refs, summary=%#v", result.Plan.Summary)
+	}
+
+	destRef := namespaceDestRef(t, fixture.exchange.Task.RootRef, fixture.exchange.ExchangeID, namespace)
+	gotDestOID := strings.TrimSpace(fixture.sourceRepo.Git("rev-parse", destRef))
+	if gotDestOID != taskUpdate.NewOID {
+		t.Fatalf("namespace destination ref mismatch: got %q want %q", gotDestOID, taskUpdate.NewOID)
+	}
+
+	originalOID := strings.TrimSpace(fixture.sourceRepo.Git("rev-parse", fixture.exchange.Task.RootRef))
+	if originalOID != taskUpdate.OldOID {
+		t.Fatalf("expected original task ref to stay unchanged: got %q want %q", originalOID, taskUpdate.OldOID)
+	}
+
+	assertNoImportRefs(t, fixture.sourceRepo.Dir)
+}
+
+func TestRunApplyFailsBranchMovedWithNamespaceHint(t *testing.T) {
+	fixture := setupReturnFixture(t, mutateTaskRootCommit)
+
+	fixture.sourceRepo.WriteFile("branch-moved.txt", "local move\n")
+	localHead := strings.TrimSpace(fixture.sourceRepo.CommitAll("local branch movement"))
+	fixture.sourceRepo.Git("update-ref", fixture.exchange.Task.RootRef, localHead)
+
+	_, err := Run(Options{
+		CWD:               fixture.sourceRepo.Dir,
+		ReturnPackagePath: fixture.returnPackagePath,
+	})
+	assertErrorContains(t, err, errs.CodeBranchMoved,
+		"cannot update "+fixture.exchange.Task.RootRef,
+		"Expected old OID:",
+		"Current local OID:",
+		"--namespace",
+	)
+}
+
+func TestRunApplyFailsExistingDestinationRefWithNamespaceHint(t *testing.T) {
+	fixture := setupReturnFixture(t, mutateSiblingTaskBranchCommit)
+
+	if len(fixture.returnRecord.Updates) == 0 {
+		t.Fatalf("expected updates in return record")
+	}
+	const namespace = "procoder-import"
+	targetRef := namespaceDestRef(t, fixture.returnRecord.Updates[0].Ref, fixture.exchange.ExchangeID, namespace)
+	existingOID := strings.TrimSpace(fixture.sourceRepo.Git("rev-parse", "HEAD"))
+	fixture.sourceRepo.Git("update-ref", targetRef, existingOID)
+
+	_, err := Run(Options{
+		CWD:               fixture.sourceRepo.Dir,
+		ReturnPackagePath: fixture.returnPackagePath,
+		Namespace:         namespace,
+	})
+	assertErrorContains(t, err, errs.CodeRefExists,
+		"cannot create "+targetRef,
+		"Existing local OID:",
+		"--namespace",
+	)
+}
+
+func TestRunApplyFailsCheckedOutDestinationRef(t *testing.T) {
+	fixture := setupReturnFixture(t, mutateTaskRootCommit)
+
+	taskShort := strings.TrimPrefix(fixture.exchange.Task.RootRef, "refs/heads/")
+	fixture.sourceRepo.Git("checkout", taskShort)
+
+	_, err := Run(Options{
+		CWD:               fixture.sourceRepo.Dir,
+		ReturnPackagePath: fixture.returnPackagePath,
+	})
+	assertErrorContains(t, err, errs.CodeTargetBranchCheckedOut,
+		"cannot update checked-out branch "+fixture.exchange.Task.RootRef,
+		"Current HEAD: "+fixture.exchange.Task.RootRef,
+	)
+}
+
+func TestRunApplyCheckoutSuccessPath(t *testing.T) {
+	fixture := setupReturnFixture(t, mutateTaskRootCommit)
+	taskUpdate, ok := findUpdate(fixture.returnRecord.Updates, fixture.exchange.Task.RootRef)
+	if !ok {
+		t.Fatalf("expected task root update in return record")
+	}
+
+	result, err := Run(Options{
+		CWD:               fixture.sourceRepo.Dir,
+		ReturnPackagePath: fixture.returnPackagePath,
+		Checkout:          true,
+	})
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+
+	if result.CheckedOutRef != fixture.exchange.Task.RootRef {
+		t.Fatalf("unexpected checked-out ref: got %q want %q", result.CheckedOutRef, fixture.exchange.Task.RootRef)
+	}
+
+	headRef := strings.TrimSpace(fixture.sourceRepo.Git("symbolic-ref", "--quiet", "HEAD"))
+	if headRef != fixture.exchange.Task.RootRef {
+		t.Fatalf("expected checkout to switch to task ref: got %q want %q", headRef, fixture.exchange.Task.RootRef)
+	}
+
+	gotTaskOID := strings.TrimSpace(fixture.sourceRepo.Git("rev-parse", fixture.exchange.Task.RootRef))
+	if gotTaskOID != taskUpdate.NewOID {
+		t.Fatalf("task branch was not updated: got %q want %q", gotTaskOID, taskUpdate.NewOID)
+	}
+}
+
+func TestApplyEndToEndPrepareReturnApply(t *testing.T) {
+	source := gitrepo.New(t)
+	source.WriteFile("README.md", "source\n")
+	source.CommitAll("initial")
+
+	helperPath := writeHelperBinary(t)
+	prepResult, err := prepare.Run(prepare.Options{
+		CWD:         source.Dir,
+		ToolVersion: "0.1.0-test",
+		HelperPath:  helperPath,
+		Now:         func() time.Time { return time.Date(2026, time.March, 20, 15, 0, 0, 0, time.UTC) },
+		Random:      bytes.NewReader([]byte{0x0d, 0x0e, 0x0f}),
+	})
+	if err != nil {
+		t.Fatalf("prepare.Run failed: %v", err)
+	}
+
+	exportRoot := unzipTaskPackage(t, prepResult.TaskPackagePath)
+	ex, err := exchange.ReadExchange(filepath.Join(exportRoot, ".git", "procoder", "exchange.json"))
+	if err != nil {
+		t.Fatalf("ReadExchange(export) failed: %v", err)
+	}
+
+	appendFile(t, filepath.Join(exportRoot, "README.md"), "remote change\n")
+	runGit(t, exportRoot, "add", "README.md")
+	runGit(t, exportRoot, "commit", "-m", "remote task update")
+
+	retResult, err := returnpkg.Run(returnpkg.Options{
+		CWD:         exportRoot,
+		ToolVersion: "0.1.0-test",
+		Now:         func() time.Time { return time.Date(2026, time.March, 20, 15, 30, 0, 0, time.UTC) },
+	})
+	if err != nil {
+		t.Fatalf("returnpkg.Run failed: %v", err)
+	}
+
+	retRecord := readReturnRecordFromZip(t, retResult.ReturnPackagePath)
+	taskUpdate, ok := findUpdate(retRecord.Updates, ex.Task.RootRef)
+	if !ok {
+		t.Fatalf("expected task root update in return record")
+	}
+
+	result, err := Run(Options{
+		CWD:               source.Dir,
+		ReturnPackagePath: retResult.ReturnPackagePath,
+	})
+	if err != nil {
+		t.Fatalf("apply.Run failed: %v", err)
+	}
+
+	if result.Plan.ExchangeID != ex.ExchangeID {
+		t.Fatalf("unexpected exchange id: got %q want %q", result.Plan.ExchangeID, ex.ExchangeID)
+	}
+	if got := strings.TrimSpace(source.Git("rev-parse", ex.Task.RootRef)); got != taskUpdate.NewOID {
+		t.Fatalf("task ref mismatch after apply: got %q want %q", got, taskUpdate.NewOID)
+	}
+	assertNoImportRefs(t, source.Dir)
+}
+
 type returnFixture struct {
 	sourceRepo        *gitrepo.Repo
 	exportRoot        string
@@ -346,6 +565,24 @@ func findEntry(entries []PlanEntry, destinationRef string) (PlanEntry, bool) {
 		}
 	}
 	return PlanEntry{}, false
+}
+
+func findUpdate(updates []exchange.RefUpdate, ref string) (exchange.RefUpdate, bool) {
+	for _, update := range updates {
+		if update.Ref == ref {
+			return update, true
+		}
+	}
+	return exchange.RefUpdate{}, false
+}
+
+func assertNoImportRefs(t *testing.T, dir string) {
+	t.Helper()
+
+	importRefs := strings.TrimSpace(runGit(t, dir, "for-each-ref", "--format=%(refname)", "refs/procoder/import"))
+	if importRefs != "" {
+		t.Fatalf("expected temporary import refs to be cleaned up, got:\n%s", importRefs)
+	}
 }
 
 func readReturnRecordFromZip(t *testing.T, zipPath string) exchange.Return {
