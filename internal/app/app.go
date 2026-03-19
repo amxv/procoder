@@ -3,7 +3,9 @@ package app
 import (
 	"fmt"
 	"io"
+	"strings"
 
+	"github.com/amxv/procoder/internal/apply"
 	"github.com/amxv/procoder/internal/errs"
 	"github.com/amxv/procoder/internal/prepare"
 )
@@ -12,8 +14,11 @@ const commandName = "procoder"
 
 var version = "dev"
 var runPrepare = prepare.Run
+var runApplyDryRun = apply.RunDryRun
 
 func Run(args []string, stdout, stderr io.Writer) error {
+	_ = stderr
+
 	if len(args) == 0 || isHelpArg(args[0]) {
 		printRootHelp(stdout)
 		return nil
@@ -46,11 +51,29 @@ func Run(args []string, stdout, stderr io.Writer) error {
 			printApplyHelp(stdout)
 			return nil
 		}
-		return errs.New(
-			errs.CodeNotImplemented,
-			"`procoder apply` is not implemented yet",
-			errs.WithHint("this command will be wired in a later implementation phase"),
-		)
+
+		parsed, err := parseApplyArgs(args[1:])
+		if err != nil {
+			return err
+		}
+
+		if !parsed.DryRun {
+			return errs.New(
+				errs.CodeNotImplemented,
+				"`procoder apply` write mode is not implemented yet",
+				errs.WithHint("rerun with `procoder apply <return-package.zip> --dry-run`"),
+			)
+		}
+
+		plan, err := runApplyDryRun(apply.Options{
+			ReturnPackagePath: parsed.ReturnPackagePath,
+			Namespace:         parsed.Namespace,
+		})
+		if err != nil {
+			return err
+		}
+		writeLines(stdout, apply.FormatDryRun(plan))
+		return nil
 	default:
 		return errs.New(
 			errs.CodeUnknownCommand,
@@ -58,6 +81,80 @@ func Run(args []string, stdout, stderr io.Writer) error {
 			errs.WithHint(fmt.Sprintf("run `%s --help`", commandName)),
 		)
 	}
+}
+
+type applyArgs struct {
+	ReturnPackagePath string
+	DryRun            bool
+	Namespace         string
+	Checkout          bool
+}
+
+func parseApplyArgs(args []string) (applyArgs, error) {
+	parsed := applyArgs{}
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--dry-run":
+			parsed.DryRun = true
+		case arg == "--checkout":
+			parsed.Checkout = true
+		case arg == "--namespace":
+			if i+1 >= len(args) {
+				return applyArgs{}, errs.New(
+					errs.CodeUnknownCommand,
+					"missing value for `--namespace`",
+					errs.WithHint("run `procoder apply --help`"),
+				)
+			}
+			i++
+			value := strings.TrimSpace(args[i])
+			if value == "" {
+				return applyArgs{}, errs.New(
+					errs.CodeUnknownCommand,
+					"namespace prefix for `--namespace` must not be empty",
+					errs.WithHint("run `procoder apply --help`"),
+				)
+			}
+			parsed.Namespace = value
+		case strings.HasPrefix(arg, "--namespace="):
+			value := strings.TrimSpace(strings.TrimPrefix(arg, "--namespace="))
+			if value == "" {
+				return applyArgs{}, errs.New(
+					errs.CodeUnknownCommand,
+					"namespace prefix for `--namespace` must not be empty",
+					errs.WithHint("run `procoder apply --help`"),
+				)
+			}
+			parsed.Namespace = value
+		case strings.HasPrefix(arg, "-"):
+			return applyArgs{}, unknownApplyArgument(arg)
+		default:
+			if parsed.ReturnPackagePath == "" {
+				parsed.ReturnPackagePath = arg
+				continue
+			}
+			return applyArgs{}, unknownApplyArgument(arg)
+		}
+	}
+
+	if strings.TrimSpace(parsed.ReturnPackagePath) == "" {
+		return applyArgs{}, errs.New(
+			errs.CodeUnknownCommand,
+			"missing return package path for `procoder apply`",
+			errs.WithHint("run `procoder apply --help`"),
+		)
+	}
+
+	return parsed, nil
+}
+
+func unknownApplyArgument(arg string) error {
+	return errs.New(
+		errs.CodeUnknownCommand,
+		fmt.Sprintf("unknown argument %q for `procoder apply`", arg),
+		errs.WithHint("run `procoder apply --help`"),
+	)
 }
 
 func isHelpArg(v string) bool {
@@ -77,13 +174,13 @@ func printRootHelp(w io.Writer) {
 		"  procoder <command> [arguments]",
 		"",
 		"Commands:",
-		"  prepare                       create a task package",
-		"  apply <return-package.zip>     apply a return package (coming soon)",
-		"  version         print CLI version",
+		"  prepare                        create a task package",
+		"  apply <return-package.zip>     apply a return package",
+		"  version                        print CLI version",
 		"",
 		"Examples:",
 		"  procoder prepare",
-		"  procoder apply procoder-return-<exchange-id>.zip",
+		"  procoder apply procoder-return-<exchange-id>.zip --dry-run",
 		"  procoder version",
 	)
 }
@@ -110,6 +207,7 @@ func printApplyHelp(w io.Writer) {
 		"Examples:",
 		"  procoder apply procoder-return-<exchange-id>.zip",
 		"  procoder apply procoder-return-<exchange-id>.zip --dry-run",
+		"  procoder apply procoder-return-<exchange-id>.zip --dry-run --namespace procoder-import",
 	)
 }
 
