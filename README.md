@@ -12,17 +12,15 @@ It is built for a very specific workflow:
 
 ## Why this exists
 
-ChatGPT's coding sandbox is useful because it already has a lot of developer tooling available out of the box, including environments for languages like Python, TypeScript, Go, and Java. The catch is that it is isolated: no normal internet access, no direct connection to your Git remote, and no way to push straight into your repository.
+ChatGPT 5.4 Pro is the best coding model.
 
-If you specifically want ChatGPT's strongest chat-native workflow for coding tasks, this gap matters. As of March 5, 2026, OpenAI says GPT-5.4 rolled out across ChatGPT, the API, and Codex, while GPT-5.4 Pro is available in ChatGPT Pro and Enterprise plus the API. `procoder` is for the case where you want that ChatGPT sandbox experience, especially the Pro model tier, to end with real Git commits back in your local repository.
+But it is not available in Codex, which is where many developers normally access OpenAI models for coding. `procoder` bridges that gap by letting you use ChatGPT's sandbox workflow and still get real Git commits back into your local repository.
 
 `procoder` turns that limitation into a workflow:
 
 1. You prepare a clean, portable task package from your repo.
 2. ChatGPT works inside that package, commits on a prepared branch, and exports only the incremental Git result.
 3. You apply that result locally so it feels like ChatGPT committed to your repo for you.
-
-The important part is that this is not a patch-copying tool. ChatGPT works in a real Git repository and returns real Git history.
 
 ## How the round trip feels
 
@@ -32,7 +30,7 @@ From the perspective of a user who just wants a coding task done, the normal flo
 2. ChatGPT works in that repo, commits on the already-prepared task branch, then runs `./procoder-return` to create a small return package.
 3. Download `procoder-return-<exchange-id>.zip` and run `procoder apply <return-package.zip>` in your original repo.
 
-That is the whole user story. The rest of the tool exists to make those three steps safe, portable, and Git-native.
+That is the whole user story. It is Git-native, not a patch-copying workaround.
 
 ## Workflow Diagram
 
