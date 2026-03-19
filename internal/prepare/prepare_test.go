@@ -39,7 +39,8 @@ func TestRunPrepareHappyPath(t *testing.T) {
 	}
 
 	const expectedID = "20260320-113015-010203"
-	expectedTaskRef := "refs/heads/procoder/" + expectedID
+	expectedTaskRef := "refs/heads/procoder/" + expectedID + "/task"
+	expectedTaskPrefix := "refs/heads/procoder/" + expectedID
 	expectedTaskPackageName := "procoder-task-" + expectedID + ".zip"
 	expectedTaskPackagePath := filepath.Join(repo.Dir, expectedTaskPackageName)
 	if result.ExchangeID != expectedID {
@@ -91,6 +92,9 @@ func TestRunPrepareHappyPath(t *testing.T) {
 	}
 	if localExchange.Task.RootRef != expectedTaskRef {
 		t.Fatalf("unexpected local task ref: got %q want %q", localExchange.Task.RootRef, expectedTaskRef)
+	}
+	if localExchange.Task.RefPrefix != expectedTaskPrefix {
+		t.Fatalf("unexpected local task ref prefix: got %q want %q", localExchange.Task.RefPrefix, expectedTaskPrefix)
 	}
 
 	expectedHeads := readRefsInRepo(t, repo.Dir, "refs/heads")

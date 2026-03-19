@@ -70,7 +70,7 @@ func TestRunPrepareCommand(t *testing.T) {
 		}
 		return prepare.Result{
 			ExchangeID:      "20260320-120000-a1b2c3",
-			TaskRootRef:     "refs/heads/procoder/20260320-120000-a1b2c3",
+			TaskRootRef:     "refs/heads/procoder/20260320-120000-a1b2c3/task",
 			TaskPackagePath: "/tmp/procoder-task-20260320-120000-a1b2c3.zip",
 		}, nil
 	}
@@ -87,7 +87,7 @@ func TestRunPrepareCommand(t *testing.T) {
 	if !strings.Contains(got, "Prepared exchange.") {
 		t.Fatalf("expected prepare success header, got: %q", got)
 	}
-	if !strings.Contains(got, "refs/heads/procoder/20260320-120000-a1b2c3") {
+	if !strings.Contains(got, "refs/heads/procoder/20260320-120000-a1b2c3/task") {
 		t.Fatalf("expected task branch in output, got: %q", got)
 	}
 	if !strings.Contains(got, "/tmp/procoder-task-20260320-120000-a1b2c3.zip") {

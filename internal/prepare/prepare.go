@@ -102,6 +102,10 @@ func Run(opts Options) (Result, error) {
 	if taskRootRef == "" {
 		return Result{}, errs.New(errs.CodeInternal, "generated an invalid exchange id")
 	}
+	taskRefPrefix := exchange.TaskRefPrefix(exchangeID)
+	if taskRefPrefix == "" {
+		return Result{}, errs.New(errs.CodeInternal, "generated an invalid task ref prefix")
+	}
 
 	if err := createTaskBranch(sourceGit, taskRootRef, headOID); err != nil {
 		return Result{}, err
@@ -123,7 +127,7 @@ func Run(opts Options) (Result, error) {
 		},
 		Task: exchange.ExchangeTask{
 			RootRef:   taskRootRef,
-			RefPrefix: exchange.TaskRefPrefix(exchangeID),
+			RefPrefix: taskRefPrefix,
 			BaseOID:   headOID,
 		},
 		Context: exchange.ExchangeContext{

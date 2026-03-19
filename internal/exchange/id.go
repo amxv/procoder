@@ -12,6 +12,7 @@ import (
 
 const (
 	TaskRefNamespace = "refs/heads/procoder"
+	taskBranchName   = "task"
 )
 
 var exchangeIDPattern = regexp.MustCompile(`^\d{8}-\d{6}-[0-9a-f]{6}$`)
@@ -33,6 +34,14 @@ func GenerateID(now time.Time, random io.Reader) (string, error) {
 }
 
 func TaskRootRef(exchangeID string) string {
+	prefix := TaskRefPrefix(exchangeID)
+	if prefix == "" {
+		return ""
+	}
+	return prefix + "/" + taskBranchName
+}
+
+func TaskRefPrefix(exchangeID string) string {
 	normalized, ok := normalizeExchangeID(exchangeID)
 	if !ok {
 		return ""
@@ -40,16 +49,12 @@ func TaskRootRef(exchangeID string) string {
 	return TaskRefNamespace + "/" + normalized
 }
 
-func TaskRefPrefix(exchangeID string) string {
-	return TaskRootRef(exchangeID)
-}
-
 func IsTaskRef(exchangeID, ref string) bool {
-	root := TaskRootRef(exchangeID)
-	if root == "" {
+	prefix := TaskRefPrefix(exchangeID)
+	if prefix == "" {
 		return false
 	}
-	return ref == root || strings.HasPrefix(ref, root+"/")
+	return strings.HasPrefix(ref, prefix+"/")
 }
 
 func normalizeExchangeID(exchangeID string) (string, bool) {

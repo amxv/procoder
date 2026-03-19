@@ -51,7 +51,7 @@ func TestExchangeAndReturnJSONRoundTrip(t *testing.T) {
 			HeadOID: "abc123",
 		},
 		Task: ExchangeTask{
-			RootRef:   "refs/heads/procoder/20260320-103000-a1b2c3",
+			RootRef:   "refs/heads/procoder/20260320-103000-a1b2c3/task",
 			RefPrefix: "refs/heads/procoder/20260320-103000-a1b2c3",
 			BaseOID:   "abc123",
 		},
@@ -112,13 +112,17 @@ func TestExchangeAndReturnJSONRoundTrip(t *testing.T) {
 func TestIsTaskRef(t *testing.T) {
 	exchangeID := "20260320-113015-a1b2c3"
 	root := TaskRootRef(exchangeID)
+	prefix := TaskRefPrefix(exchangeID)
 
 	if !IsTaskRef(exchangeID, root) {
 		t.Fatalf("expected root ref to be allowed: %q", root)
 	}
-	child := root + "/experiment"
-	if !IsTaskRef(exchangeID, child) {
-		t.Fatalf("expected child ref to be allowed: %q", child)
+	if IsTaskRef(exchangeID, prefix) {
+		t.Fatalf("did not expect prefix-only ref to be allowed: %q", prefix)
+	}
+	sibling := prefix + "/experiment"
+	if !IsTaskRef(exchangeID, sibling) {
+		t.Fatalf("expected sibling task-family ref to be allowed: %q", sibling)
 	}
 	if IsTaskRef(exchangeID, "refs/heads/main") {
 		t.Fatal("did not expect refs/heads/main to be allowed")
@@ -128,7 +132,7 @@ func TestIsTaskRef(t *testing.T) {
 func TestTaskRefHelpersFailClosedForInvalidExchangeID(t *testing.T) {
 	t.Parallel()
 
-	refInNamespace := "refs/heads/procoder/20260320-113015-a1b2c3"
+	refInNamespace := "refs/heads/procoder/20260320-113015-a1b2c3/task"
 	testCases := []struct {
 		name string
 		id   string

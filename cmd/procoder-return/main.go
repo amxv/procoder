@@ -1,26 +1,46 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 
 	"github.com/amxv/procoder/internal/errs"
 	"github.com/amxv/procoder/internal/output"
+	"github.com/amxv/procoder/internal/returnpkg"
 )
 
+var version = "dev"
+var runReturn = returnpkg.Run
+
 func main() {
-	args := os.Args[1:]
+	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
+		output.WriteError(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func run(args []string, stdout, stderr io.Writer) error {
+	_ = stderr
+
 	if len(args) > 0 && isHelpArg(args[0]) {
-		printHelp(os.Stdout)
-		return
+		printHelp(stdout)
+		return nil
+	}
+	if len(args) > 0 {
+		return errs.New(
+			errs.CodeUnknownCommand,
+			fmt.Sprintf("unknown argument %q for `procoder-return`", args[0]),
+			errs.WithHint("run `procoder-return --help`"),
+		)
 	}
 
-	output.WriteError(os.Stderr, errs.New(
-		errs.CodeNotImplemented,
-		"`procoder-return` is not implemented yet",
-		errs.WithHint("this command will be wired in a later implementation phase"),
-	))
-	os.Exit(1)
+	result, err := runReturn(returnpkg.Options{ToolVersion: version})
+	if err != nil {
+		return err
+	}
+	_, _ = fmt.Fprintln(stdout, returnpkg.FormatSuccess(result))
+	return nil
 }
 
 func printHelp(w io.Writer) {
