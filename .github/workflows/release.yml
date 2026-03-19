@@ -135,6 +135,6 @@ jobs:
           VERSION="$VERSION" node -e "const fs=require('fs');const p=require('./package.json');p.version=process.env.VERSION;fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\\n');"
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,5 +1,5 @@
 {
-  "name": "@amxv/procoder",
+  "name": "procoder-cli",
   "version": "0.1.0",
   "description": "Offline Git exchange CLI for local repositories and locked-down ChatGPT coding containers",
   "license": "MIT",

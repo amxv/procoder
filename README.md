@@ -18,7 +18,7 @@ The default round trip is:
 Global install via npm:
 
 ```bash
-npm i -g @amxv/procoder
+npm i -g procoder-cli
 procoder --help
 ```
 
