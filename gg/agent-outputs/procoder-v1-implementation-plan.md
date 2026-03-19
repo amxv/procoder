@@ -23,9 +23,9 @@ The lead will review each phase, request fixes if needed, run checks again, and 
 Every implementer must read these before touching code:
 
 - `AGENTS.md`
-- [`gg/agent-outputs/procoder-handoff-v1-product-spec.md`](/Users/ashray/code/amxv/pro-coder/gg/agent-outputs/procoder-handoff-v1-product-spec.md)
-- [`gg/agent-outputs/procoder-exchange-v1-internal-spec.md`](/Users/ashray/code/amxv/pro-coder/gg/agent-outputs/procoder-exchange-v1-internal-spec.md)
-- [`gg/agent-outputs/procoder-v1-implementation-plan.md`](/Users/ashray/code/amxv/pro-coder/gg/agent-outputs/procoder-v1-implementation-plan.md)
+- [`gg/agent-outputs/procoder-handoff-v1-product-spec.md`](./procoder-handoff-v1-product-spec.md)
+- [`gg/agent-outputs/procoder-exchange-v1-internal-spec.md`](./procoder-exchange-v1-internal-spec.md)
+- [`gg/agent-outputs/procoder-v1-implementation-plan.md`](./procoder-v1-implementation-plan.md)
 
 ## Review And Validation Policy
 
