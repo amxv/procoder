@@ -1,15 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/amxv/procoder/internal/app"
+	"github.com/amxv/procoder/internal/output"
 )
 
 func main() {
 	if err := app.Run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
+		output.WriteError(os.Stderr, err)
 		os.Exit(1)
 	}
 }

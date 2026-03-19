@@ -3,7 +3,8 @@ package app
 import (
 	"fmt"
 	"io"
-	"strings"
+
+	"github.com/amxv/procoder/internal/errs"
 )
 
 const commandName = "procoder"
@@ -20,22 +21,32 @@ func Run(args []string, stdout, stderr io.Writer) error {
 	case "version":
 		_, _ = fmt.Fprintf(stdout, "%s %s\n", commandName, version)
 		return nil
-	case "hello":
+	case "prepare":
 		if len(args) > 1 && isHelpArg(args[1]) {
-			printHelloHelp(stdout)
+			printPrepareHelp(stdout)
 			return nil
 		}
-		name := "world"
-		if len(args) > 1 {
-			name = strings.TrimSpace(args[1])
-			if name == "" {
-				name = "world"
-			}
+		return errs.New(
+			errs.CodeNotImplemented,
+			"`procoder prepare` is not implemented yet",
+			errs.WithHint("this command will be wired in a later implementation phase"),
+		)
+	case "apply":
+		if len(args) > 1 && isHelpArg(args[1]) {
+			printApplyHelp(stdout)
+			return nil
 		}
-		_, _ = fmt.Fprintf(stdout, "Hello, %s!\n", name)
-		return nil
+		return errs.New(
+			errs.CodeNotImplemented,
+			"`procoder apply` is not implemented yet",
+			errs.WithHint("this command will be wired in a later implementation phase"),
+		)
 	default:
-		return fmt.Errorf("unknown command %q (run `%s --help`)", args[0], commandName)
+		return errs.New(
+			errs.CodeUnknownCommand,
+			fmt.Sprintf("unknown command %q", args[0]),
+			errs.WithHint(fmt.Sprintf("run `%s --help`", commandName)),
+		)
 	}
 }
 
@@ -50,32 +61,45 @@ func isHelpArg(v string) bool {
 
 func printRootHelp(w io.Writer) {
 	writeLines(w,
-		"procoder - Go CLI template",
+		"procoder",
 		"",
 		"Usage:",
 		"  procoder <command> [arguments]",
 		"",
 		"Commands:",
-		"  hello [name]    print a greeting",
+		"  prepare         create a task package (coming soon)",
+		"  apply <return-package.zip>     apply a return package (coming soon)",
 		"  version         print CLI version",
 		"",
 		"Examples:",
-		"  procoder hello",
-		"  procoder hello agent",
+		"  procoder prepare",
+		"  procoder apply procoder-return-<exchange-id>.zip",
 		"  procoder version",
 	)
 }
 
-func printHelloHelp(w io.Writer) {
+func printPrepareHelp(w io.Writer) {
 	writeLines(w,
-		"procoder hello - print a greeting",
+		"procoder prepare - create a task package",
 		"",
 		"Usage:",
-		"  procoder hello [name]",
+		"  procoder prepare",
 		"",
 		"Examples:",
-		"  procoder hello",
-		"  procoder hello Alice",
+		"  procoder prepare",
+	)
+}
+
+func printApplyHelp(w io.Writer) {
+	writeLines(w,
+		"procoder apply - apply a return package",
+		"",
+		"Usage:",
+		"  procoder apply <return-package.zip> [--dry-run] [--namespace <prefix>] [--checkout]",
+		"",
+		"Examples:",
+		"  procoder apply procoder-return-<exchange-id>.zip",
+		"  procoder apply procoder-return-<exchange-id>.zip --dry-run",
 	)
 }
 
