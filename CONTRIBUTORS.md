@@ -11,6 +11,24 @@ Maintainer notes for this template repository.
 
 ## Local development
 
+Common local commands:
+
+```bash
+make fmt
+make test
+make vet
+make lint
+make check
+make build
+make build-helper
+make build-all
+make install-local
+```
+
+`make build-all` produces the release binaries for the host CLI targets plus the packaged helper asset `procoder-return_linux_amd64`.
+
+Quick local smoke path:
+
 ```bash
 make check
 make build

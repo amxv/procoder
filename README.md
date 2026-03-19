@@ -14,6 +14,8 @@ It is built for a very specific workflow:
 
 ChatGPT's coding sandbox is useful because it already has a lot of developer tooling available out of the box, including environments for languages like Python, TypeScript, Go, and Java. The catch is that it is isolated: no normal internet access, no direct connection to your Git remote, and no way to push straight into your repository.
 
+If you specifically want ChatGPT's strongest chat-native workflow for coding tasks, this gap matters. As of March 5, 2026, OpenAI says GPT-5.4 rolled out across ChatGPT, the API, and Codex, while GPT-5.4 Pro is available in ChatGPT Pro and Enterprise plus the API. `procoder` is for the case where you want that ChatGPT sandbox experience, especially the Pro model tier, to end with real Git commits back in your local repository.
+
 `procoder` turns that limitation into a workflow:
 
 1. You prepare a clean, portable task package from your repo.
@@ -35,7 +37,7 @@ That is the whole user story. The rest of the tool exists to make those three st
 ## Workflow Diagram
 
 ```mermaid
-flowchart LR
+flowchart TD
     A[Local Git repo] --> B[procoder prepare]
     B --> C[procoder-task-<exchange-id>.zip]
     C --> D[Upload to ChatGPT sandbox]
@@ -172,21 +174,3 @@ Those constraints keep the round trip predictable and let `apply` behave like "u
 - [Command Reference](docs/commands.md)
 - [Agent Guidance](AGENTS.md)
 - [Maintainer Notes](CONTRIBUTORS.md)
-
-## Development
-
-Common local commands:
-
-```bash
-make fmt
-make test
-make vet
-make lint
-make check
-make build
-make build-helper
-make build-all
-make install-local
-```
-
-`make build-all` produces the release binaries for the host CLI targets plus the packaged helper asset `procoder-return_linux_amd64`.
