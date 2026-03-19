@@ -4,18 +4,56 @@ Guidance for coding agents working in `procoder`.
 
 ## Purpose
 
-This repo is a generic starter for Go command-line tools distributed through npm.
+This repo builds `procoder`, a Go CLI for an offline Git exchange workflow between:
 
-The sample command in this repo is `procoder`.
+- a local developer repository
+- a locked-down ChatGPT coding container
+
+The main user flow is:
+
+- `procoder prepare`
+- remote work inside the exported repo
+- `./procoder-return`
+- `procoder apply <return-package.zip>`
 
 ## Architecture
 
 - `cmd/procoder/main.go`: process entrypoint, error handling, exits non-zero on failure.
-- `internal/app/app.go`: command parser + handlers.
-- `internal/app/app_test.go`: starter tests.
+- `cmd/procoder-return/main.go`: remote helper entrypoint used inside prepared task packages.
+- `internal/app/app.go`: command parser + top-level CLI handlers.
+- `internal/exchange/`: exchange IDs, task-ref helpers, and JSON models for `exchange.json` / `procoder-return.json`.
+- `internal/gitx/`: Git command runner with structured output and typed failures.
+- `internal/prepare/`: `procoder prepare` implementation.
+- `internal/returnpkg/`: `./procoder-return` implementation.
+- `internal/apply/`: `procoder apply` implementation.
 - `bin/procoder.js`: npm shim that invokes packaged native binary.
 - `scripts/postinstall.js`: downloads release binary on install, falls back to `go build`.
 - `.github/workflows/release.yml`: tag-driven release pipeline.
+
+## Exchange Model
+
+The current Git-valid task-family shape is:
+
+- default prepared task branch: `refs/heads/procoder/<exchange-id>/task`
+- writable task-family prefix: `refs/heads/procoder/<exchange-id>`
+- allowed returned refs: `refs/heads/procoder/<exchange-id>/*`
+
+Important:
+
+- do not reintroduce the invalid older shape where both `refs/heads/procoder/<exchange-id>` and `refs/heads/procoder/<exchange-id>/*` exist at the same time
+- Git cannot store both of those refs because one path would need to be both a ref and a directory
+
+Machine-owned metadata lives under `.git/procoder/`.
+
+- local exchange record: `.git/procoder/exchanges/<exchange-id>/exchange.json`
+- exported repo exchange record: `.git/procoder/exchange.json`
+
+User-facing artifacts live at repo root by default:
+
+- task package: `./procoder-task-<exchange-id>.zip`
+- return package: `./procoder-return-<exchange-id>.zip`
+
+When changing exchange behavior, keep `gg/agent-outputs/procoder-handoff-v1-product-spec.md` and `gg/agent-outputs/procoder-exchange-v1-internal-spec.md` aligned with the code.
 
 ## Local commands
 
@@ -36,6 +74,12 @@ Direct commands:
 - `go vet ./...`
 - `npm run lint`
 
+Phase-oriented validation:
+
+- `procoder prepare` changes should be covered by integration tests under `internal/prepare/`
+- `procoder-return` changes should be covered by integration tests under `internal/returnpkg/`
+- `procoder apply` changes should be covered by integration tests under `internal/apply/`
+
 ## How to customize safely
 
 1. Rename CLI command consistently in all places:
@@ -53,6 +97,13 @@ Direct commands:
 
 4. Keep help output expressive and command-local (`<command> --help` should explain examples).
 
+5. If you change exchange filenames, helper asset names, or task-family ref naming, update:
+- code
+- tests
+- `README.md`
+- `AGENTS.md`
+- both spec docs under `gg/agent-outputs/`
+
 ## Release contract
 
 Release pipeline triggers on `v*` tags and expects:
@@ -65,3 +116,5 @@ Release pipeline triggers on `v*` tags and expects:
 
 - Prefer additive changes; do not break the release asset naming contract unintentionally.
 - If you change release artifacts or CLI binary name, update both workflow and postinstall script in the same PR.
+- Keep agent-facing failures specific and actionable, especially for `procoder-return`.
+- Favor integration tests for real Git behavior over mocked unit-only coverage for exchange flows.
