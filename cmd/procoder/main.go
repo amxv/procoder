@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/amxv/pro-coder/internal/app"
+	"github.com/amxv/procoder/internal/app"
 )
 
 func main() {

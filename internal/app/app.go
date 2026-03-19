@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const commandName = "pro-coder"
+const commandName = "procoder"
 
 var version = "dev"
 
@@ -50,32 +50,32 @@ func isHelpArg(v string) bool {
 
 func printRootHelp(w io.Writer) {
 	writeLines(w,
-		"pro-coder - Go CLI template",
+		"procoder - Go CLI template",
 		"",
 		"Usage:",
-		"  pro-coder <command> [arguments]",
+		"  procoder <command> [arguments]",
 		"",
 		"Commands:",
 		"  hello [name]    print a greeting",
 		"  version         print CLI version",
 		"",
 		"Examples:",
-		"  pro-coder hello",
-		"  pro-coder hello agent",
-		"  pro-coder version",
+		"  procoder hello",
+		"  procoder hello agent",
+		"  procoder version",
 	)
 }
 
 func printHelloHelp(w io.Writer) {
 	writeLines(w,
-		"pro-coder hello - print a greeting",
+		"procoder hello - print a greeting",
 		"",
 		"Usage:",
-		"  pro-coder hello [name]",
+		"  procoder hello [name]",
 		"",
 		"Examples:",
-		"  pro-coder hello",
-		"  pro-coder hello Alice",
+		"  procoder hello",
+		"  procoder hello Alice",
 	)
 }
 

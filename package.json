@@ -1,25 +1,25 @@
 {
-  "name": "@amxv/pro-coder",
+  "name": "@amxv/procoder",
   "version": "0.1.0",
   "description": "Template for shipping a Go CLI via npm with GitHub release automation",
   "license": "MIT",
   "author": "amxv",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amxv/pro-coder.git"
+    "url": "git+https://github.com/amxv/procoder.git"
   },
-  "homepage": "https://github.com/amxv/pro-coder#readme",
+  "homepage": "https://github.com/amxv/procoder#readme",
   "bugs": {
-    "url": "https://github.com/amxv/pro-coder/issues"
+    "url": "https://github.com/amxv/procoder/issues"
   },
   "bin": {
-    "pro-coder": "bin/pro-coder.js"
+    "procoder": "bin/procoder.js"
   },
   "config": {
-    "cliBinaryName": "pro-coder"
+    "cliBinaryName": "procoder"
   },
   "files": [
-    "bin/pro-coder.js",
+    "bin/procoder.js",
     "scripts/postinstall.js",
     "cmd",
     "internal",
@@ -31,7 +31,7 @@
   ],
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
-    "test": "node --check bin/pro-coder.js && node --check scripts/postinstall.js",
+    "test": "node --check bin/procoder.js && node --check scripts/postinstall.js",
     "lint": "npm run test"
   },
   "engines": {

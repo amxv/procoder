@@ -14,14 +14,14 @@ Maintainer notes for this template repository.
 ```bash
 make check
 make build
-./dist/pro-coder --help
+./dist/procoder --help
 ```
 
 Install command locally:
 
 ```bash
 make install-local
-pro-coder --help
+procoder --help
 ```
 
 ## Release process
@@ -51,7 +51,7 @@ make release-tag VERSION=0.1.0
 Set via GitHub CLI:
 
 ```bash
-gh secret set NPM_TOKEN --repo amxv/pro-coder
+gh secret set NPM_TOKEN --repo amxv/procoder
 ```
 
 ## npm token setup

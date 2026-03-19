@@ -1,19 +1,19 @@
 # AGENTS.md
 
-Guidance for coding agents working in `pro-coder`.
+Guidance for coding agents working in `procoder`.
 
 ## Purpose
 
 This repo is a generic starter for Go command-line tools distributed through npm.
 
-The sample command in this repo is `pro-coder`.
+The sample command in this repo is `procoder`.
 
 ## Architecture
 
-- `cmd/pro-coder/main.go`: process entrypoint, error handling, exits non-zero on failure.
+- `cmd/procoder/main.go`: process entrypoint, error handling, exits non-zero on failure.
 - `internal/app/app.go`: command parser + handlers.
 - `internal/app/app_test.go`: starter tests.
-- `bin/pro-coder.js`: npm shim that invokes packaged native binary.
+- `bin/procoder.js`: npm shim that invokes packaged native binary.
 - `scripts/postinstall.js`: downloads release binary on install, falls back to `go build`.
 - `.github/workflows/release.yml`: tag-driven release pipeline.
 
@@ -39,9 +39,9 @@ Direct commands:
 ## How to customize safely
 
 1. Rename CLI command consistently in all places:
-- directory `cmd/pro-coder`
+- directory `cmd/procoder`
 - `package.json` values (`bin`, `config.cliBinaryName`)
-- `bin/pro-coder.js`
+- `bin/procoder.js`
 - workflow env `CLI_BINARY`
 - `Makefile` `BIN_NAME`
 
