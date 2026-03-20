@@ -1,111 +1,142 @@
-Container / runtime report
-Generated: 2026-03-19 08:36:01 UTC
+# Container / Runtime Report
 
-== System ==
-Hostname: 0771b0d2710c
-Kernel: Linux 4.4.0 x86_64 GNU/Linux
-Architecture: x86_64
-OS: Debian GNU/Linux 13 (trixie)
+Generated: `2026-03-19 08:36:01 UTC`
 
-== CPU ==
-56
-Logical CPUs: 56
-Model: unknown
-Cores per socket: 56
-Vendor: GenuineIntel
+## System
 
-== Memory ==
-MemTotal: 4.00 GiB
-MemAvailable: 3.65 GiB
+| Field | Value |
+| --- | --- |
+| Hostname | `0771b0d2710c` |
+| Kernel | `Linux 4.4.0 x86_64 GNU/Linux` |
+| Architecture | `x86_64` |
+| OS | `Debian GNU/Linux 13 (trixie)` |
 
-== Disk ==
+## CPU
+
+| Field | Value |
+| --- | --- |
+| Raw CPU Count | `56` |
+| Logical CPUs | `56` |
+| Model | `unknown` |
+| Cores per Socket | `56` |
+| Vendor | `GenuineIntel` |
+
+## Memory
+
+| Field | Value |
+| --- | --- |
+| MemTotal | `4.00 GiB` |
+| MemAvailable | `3.65 GiB` |
+
+## Disk
+
+```text
 Filesystem      Size  Used Avail Use% Mounted on
 none            8.0E  3.1M  8.0E   1% /
+```
 
-== Shell and package managers ==
-[present] bash         /usr/bin/bash | GNU bash, version 5.2.37(1)-release (x86_64-pc-linux-gnu)
-[present] sh           /usr/bin/sh | version output unavailable
-[absent ] zsh
-[absent ] fish
-[present] apt          /usr/bin/apt | apt 3.0.3 (amd64)
-[present] apt-get      /usr/bin/apt-get | apt 3.0.3 (amd64)
-[present] dpkg         /usr/bin/dpkg | Debian 'dpkg' package management program version 1.22.21 (amd64).
-[absent ] snap
-[absent ] flatpak
-[absent ] brew
-[present] pip          /opt/pyvenv/bin/pip | pip 25.1.1 from /opt/pyvenv/lib/python3.13/site-packages/pip (python 3.13)
-[present] pip3         /opt/pyvenv/bin/pip3 | pip 25.1.1 from /opt/pyvenv/lib/python3.13/site-packages/pip (python 3.13)
-[present] uv           /opt/pyvenv/bin/uv | uv 0.10.0
-[present] python       /opt/pyvenv/bin/python | Python 3.13.5
-[present] python3      /opt/pyvenv/bin/python3 | Python 3.13.5
-[present] node         /opt/nvm/versions/node/v22.16.0/bin/node | v22.16.0
-[present] npm          /opt/nvm/versions/node/v22.16.0/bin/npm | 10.9.2
-[present] npx          /opt/nvm/versions/node/v22.16.0/bin/npx | 10.9.2
-[absent ] yarn
-[absent ] pnpm
-[absent ] bun
-[present] gem          /usr/bin/gem | 3.6.7
-[present] ruby         /usr/bin/ruby | ruby 3.3.8 (2025-04-09 revision b200bad6cd) [x86_64-linux-gnu]
-[present] go           /usr/local/go/bin/go | version output unavailable
-[absent ] cargo
-[absent ] rustc
-[present] javac        /usr/bin/javac | javac 21.0.10
-[present] java         /usr/bin/java | openjdk 21.0.10 2026-01-20
-[absent ] mvn
-[absent ] gradle
-[present] gcc          /usr/bin/gcc | gcc (Debian 14.2.0-19) 14.2.0
-[present] g++          /usr/bin/g++ | g++ (Debian 14.2.0-19) 14.2.0
-[present] clang        /usr/local/swift/usr/bin/clang | clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)
-[present] cmake        /usr/bin/cmake | cmake version 3.31.6
-[present] make         /usr/bin/make | GNU Make 4.4.1
-[present] ninja        /usr/bin/ninja | 1.12.1
-[present] git          /usr/bin/git | git version 2.47.3
-[present] curl         /usr/local/bin/curl | curl 8.10.1 (x86_64-pc-linux-gnu) libcurl/8.10.1 OpenSSL/3.5.4 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 nghttp2/1.64.0 librtmp/2.3 OpenLDAP/2.6.10
-[present] wget         /usr/bin/wget | GNU Wget 1.25.0 built on linux-gnu.
-[present] jq           /usr/bin/jq | jq-1.7
-[absent ] yq
-[present] rg           /usr/bin/rg | ripgrep 14.1.1
-[present] grep         /usr/bin/grep | grep (GNU grep) 3.11
-[present] sed          /usr/bin/sed | sed (GNU sed) 4.9
-[present] awk          /usr/bin/awk | mawk 1.3.4 20250131
-[present] find         /usr/bin/find | find (GNU findutils) 4.10.0
-[present] xargs        /usr/bin/xargs | xargs (GNU findutils) 4.10.0
-[present] tar          /usr/bin/tar | tar (GNU tar) 1.35
-[present] unzip        /usr/bin/unzip | UnZip 6.00 of 20 April 2009, by Debian. Original by Info-ZIP.
-[present] zip          /usr/bin/zip | Copyright (c) 1990-2008 Info-ZIP - Type 'zip "-L"' for software license.
-[present] file         /usr/bin/file | file-5.46
-[present] strings      /usr/bin/strings | GNU strings (GNU Binutils for Debian) 2.44
-[absent ] less
-[absent ] tmux
-[absent ] screen
-[absent ] docker
-[absent ] podman
-[absent ] sqlite3
-[absent ] psql
-[absent ] mysql
-[absent ] redis-cli
-[absent ] kubectl
-[absent ] helm
-[absent ] terraform
-[absent ] ansible
-[present] ffmpeg       /usr/bin/ffmpeg | version output unavailable
-[present] convert      /opt/imagemagick/bin/convert | Version: ImageMagick 7.1.2-1 Q16-HDRI x86_64 23308 https://imagemagick.org
-[present] magick       /opt/imagemagick/bin/magick | Version: ImageMagick 7.1.2-1 Q16-HDRI x86_64 23308 https://imagemagick.org
-[present] pandoc       /usr/bin/pandoc | pandoc 3.1.11.1
-[present] pdftotext    /usr/bin/pdftotext | version output unavailable
-[present] pdfinfo      /usr/bin/pdfinfo | version output unavailable
-[absent ] qpdf
+## Shell and Package Managers
 
-== Python environment ==
+### Present Tools
+
+```text
+bash         /usr/bin/bash | GNU bash, version 5.2.37(1)-release (x86_64-pc-linux-gnu)
+sh           /usr/bin/sh | version output unavailable
+apt          /usr/bin/apt | apt 3.0.3 (amd64)
+apt-get      /usr/bin/apt-get | apt 3.0.3 (amd64)
+dpkg         /usr/bin/dpkg | Debian 'dpkg' package management program version 1.22.21 (amd64).
+pip          /opt/pyvenv/bin/pip | pip 25.1.1 from /opt/pyvenv/lib/python3.13/site-packages/pip (python 3.13)
+pip3         /opt/pyvenv/bin/pip3 | pip 25.1.1 from /opt/pyvenv/lib/python3.13/site-packages/pip (python 3.13)
+uv           /opt/pyvenv/bin/uv | uv 0.10.0
+python       /opt/pyvenv/bin/python | Python 3.13.5
+python3      /opt/pyvenv/bin/python3 | Python 3.13.5
+node         /opt/nvm/versions/node/v22.16.0/bin/node | v22.16.0
+npm          /opt/nvm/versions/node/v22.16.0/bin/npm | 10.9.2
+npx          /opt/nvm/versions/node/v22.16.0/bin/npx | 10.9.2
+gem          /usr/bin/gem | 3.6.7
+ruby         /usr/bin/ruby | ruby 3.3.8 (2025-04-09 revision b200bad6cd) [x86_64-linux-gnu]
+go           /usr/local/go/bin/go | version output unavailable
+javac        /usr/bin/javac | javac 21.0.10
+java         /usr/bin/java | openjdk 21.0.10 2026-01-20
+gcc          /usr/bin/gcc | gcc (Debian 14.2.0-19) 14.2.0
+g++          /usr/bin/g++ | g++ (Debian 14.2.0-19) 14.2.0
+clang        /usr/local/swift/usr/bin/clang | clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)
+cmake        /usr/bin/cmake | cmake version 3.31.6
+make         /usr/bin/make | GNU Make 4.4.1
+ninja        /usr/bin/ninja | 1.12.1
+git          /usr/bin/git | git version 2.47.3
+curl         /usr/local/bin/curl | curl 8.10.1 (x86_64-pc-linux-gnu) libcurl/8.10.1 OpenSSL/3.5.4 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 nghttp2/1.64.0 librtmp/2.3 OpenLDAP/2.6.10
+wget         /usr/bin/wget | GNU Wget 1.25.0 built on linux-gnu.
+jq           /usr/bin/jq | jq-1.7
+rg           /usr/bin/rg | ripgrep 14.1.1
+grep         /usr/bin/grep | grep (GNU grep) 3.11
+sed          /usr/bin/sed | sed (GNU sed) 4.9
+awk          /usr/bin/awk | mawk 1.3.4 20250131
+find         /usr/bin/find | find (GNU findutils) 4.10.0
+xargs        /usr/bin/xargs | xargs (GNU findutils) 4.10.0
+tar          /usr/bin/tar | tar (GNU tar) 1.35
+unzip        /usr/bin/unzip | UnZip 6.00 of 20 April 2009, by Debian. Original by Info-ZIP.
+zip          /usr/bin/zip | Copyright (c) 1990-2008 Info-ZIP - Type 'zip "-L"' for software license.
+file         /usr/bin/file | file-5.46
+strings      /usr/bin/strings | GNU strings (GNU Binutils for Debian) 2.44
+ffmpeg       /usr/bin/ffmpeg | version output unavailable
+convert      /opt/imagemagick/bin/convert | Version: ImageMagick 7.1.2-1 Q16-HDRI x86_64 23308 https://imagemagick.org
+magick       /opt/imagemagick/bin/magick | Version: ImageMagick 7.1.2-1 Q16-HDRI x86_64 23308 https://imagemagick.org
+pandoc       /usr/bin/pandoc | pandoc 3.1.11.1
+pdftotext    /usr/bin/pdftotext | version output unavailable
+pdfinfo      /usr/bin/pdfinfo | version output unavailable
+```
+
+### Absent Tools
+
+```text
+zsh
+fish
+snap
+flatpak
+brew
+yarn
+pnpm
+bun
+cargo
+rustc
+mvn
+gradle
+yq
+less
+tmux
+screen
+docker
+podman
+sqlite3
+psql
+mysql
+redis-cli
+kubectl
+helm
+terraform
+ansible
+qpdf
+```
+
+## Python Environment
+
+```text
 Python 3.13.5
 pip 25.1.1 from /opt/pyvenv/lib/python3.13/site-packages/pip (python 3.13)
+```
 
-== Node environment ==
+## Node Environment
+
+```text
 v22.16.0
 10.9.2
 10.9.2
+```
 
-== Java / Go / C-C++ ==
+## Java / Go / C-C++
+
+```text
 openjdk version "21.0.10" 2026-01-20
 OpenJDK Runtime Environment (build 21.0.10+7-Debian-1deb13u1)
 javac 21.0.10
@@ -115,8 +146,11 @@ g++ (Debian 14.2.0-19) 14.2.0
 clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)
 cmake version 3.31.6
 GNU Make 4.4.1
+```
 
-== Top-level environment vars ==
+## Top-Level Environment Vars
+
+```text
 ACE_TOOLS_FEATURE_SET=chatgpt-applied
 ALL_PROXY=
 API_PORT=8080
@@ -237,3 +271,4 @@ PROCESS_MEMORY_LIMIT=4294967296
 PWD=/
 REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 RUST_BACKTRACE=full
+```
