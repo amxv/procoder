@@ -6,6 +6,7 @@ const pkg = require("../package.json");
 const cliName = pkg.config?.cliBinaryName || "procoder";
 const {
   buildFallbackBuilds,
+  buildLdflags,
   buildInstallPlan,
   helperAssetName,
   resolveHostTarget
@@ -59,11 +60,23 @@ test("buildFallbackBuilds cross-compiles the linux helper from cmd/procoder-retu
 
   assert.equal(builds.length, 2);
   assert.equal(builds[0].args.at(-1), `./cmd/${cliName}`);
+  assert.ok(
+    builds[0].args.includes(
+      `-ldflags=-s -w -X github.com/amxv/procoder/internal/buildinfo.Version=${pkg.version}`
+    )
+  );
   assert.equal(builds[1].args.at(-1), "./cmd/procoder-return");
   assert.equal(builds[1].destination, path.join(rootDir, "bin", helperAssetName));
   assert.equal(builds[1].env.CGO_ENABLED, "0");
   assert.equal(builds[1].env.GOOS, "linux");
   assert.equal(builds[1].env.GOARCH, "amd64");
+});
+
+test("buildLdflags falls back to dev when version is missing", () => {
+  assert.equal(
+    buildLdflags(""),
+    "-s -w -X github.com/amxv/procoder/internal/buildinfo.Version=dev"
+  );
 });
 
 test("resolveHostTarget returns null for unsupported host targets", () => {

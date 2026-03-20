@@ -1,6 +1,6 @@
 {
   "name": "procoder-cli",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "Offline Git exchange CLI for local repositories and locked-down ChatGPT coding containers",
   "license": "MIT",
   "author": "amxv",

@@ -79,8 +79,10 @@ jobs:
       - name: Build binary
         run: |
           mkdir -p dist
+          VERSION="${GITHUB_REF_NAME#v}"
           CMD_PATH="./cmd/${{ env.CLI_BINARY }}"
           ASSET_NAME="${{ env.CLI_BINARY }}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          LDFLAGS="-s -w -X github.com/amxv/procoder/internal/buildinfo.Version=${VERSION}"
           if [ "${{ matrix.binary_kind }}" = "helper" ]; then
             CMD_PATH="./cmd/${{ env.HELPER_BINARY }}"
             ASSET_NAME="${{ env.HELPER_BINARY }}_${{ matrix.goos }}_${{ matrix.goarch }}"
@@ -90,7 +92,7 @@ jobs:
           fi
 
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
-            go build -trimpath -ldflags="-s -w" \
+            go build -trimpath -ldflags="${LDFLAGS}" \
             -o "dist/${ASSET_NAME}" "${CMD_PATH}"
 
       - name: Upload artifact

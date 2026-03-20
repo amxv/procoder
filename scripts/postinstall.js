@@ -60,6 +60,11 @@ function buildReleaseAssetURL({ repoOwner, repoName, version, assetName }) {
   return `https://github.com/${repoOwner}/${repoName}/releases/download/v${version}/${assetName}`;
 }
 
+function buildLdflags(version) {
+  const resolvedVersion = `${version || ""}`.trim() || "dev";
+  return `-s -w -X github.com/amxv/procoder/internal/buildinfo.Version=${resolvedVersion}`;
+}
+
 function buildInstallPlan({
   pkg,
   cliName,
@@ -167,6 +172,7 @@ function fallbackBuildOrExit(plan) {
 }
 
 function buildFallbackBuilds(plan) {
+  const ldflags = buildLdflags(plan.version);
   return [
     {
       destination: plan.cli.destination,
@@ -174,7 +180,7 @@ function buildFallbackBuilds(plan) {
       args: [
         "build",
         "-trimpath",
-        '-ldflags=-s -w',
+        `-ldflags=${ldflags}`,
         "-o",
         plan.cli.destination,
         `./cmd/${plan.cli.name}`
@@ -190,7 +196,7 @@ function buildFallbackBuilds(plan) {
       args: [
         "build",
         "-trimpath",
-        '-ldflags=-s -w',
+        `-ldflags=${ldflags}`,
         "-o",
         plan.helper.destination,
         `./cmd/${plan.helper.name}`
@@ -245,6 +251,7 @@ function downloadToFile(url, destinationPath) {
 
 module.exports = {
   buildFallbackBuilds,
+  buildLdflags,
   buildInstallPlan,
   buildReleaseAssetName,
   buildReleaseAssetURL,

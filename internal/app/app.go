@@ -6,13 +6,14 @@ import (
 	"strings"
 
 	"github.com/amxv/procoder/internal/apply"
+	"github.com/amxv/procoder/internal/buildinfo"
 	"github.com/amxv/procoder/internal/errs"
 	"github.com/amxv/procoder/internal/prepare"
 )
 
 const commandName = "procoder"
 
-var version = "dev"
+var version = buildinfo.CurrentVersion()
 var runPrepare = prepare.Run
 var runApplyDryRun = apply.RunDryRun
 var runApply = apply.Run

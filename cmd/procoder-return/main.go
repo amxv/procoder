@@ -5,12 +5,13 @@ import (
 	"io"
 	"os"
 
+	"github.com/amxv/procoder/internal/buildinfo"
 	"github.com/amxv/procoder/internal/errs"
 	"github.com/amxv/procoder/internal/output"
 	"github.com/amxv/procoder/internal/returnpkg"
 )
 
-var version = "dev"
+var version = buildinfo.CurrentVersion()
 var runReturn = returnpkg.Run
 
 func main() {

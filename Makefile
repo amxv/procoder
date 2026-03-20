@@ -12,7 +12,8 @@ HELPER_CMD_PATH ?= ./cmd/$(HELPER_NAME)
 DIST_DIR ?= dist
 BIN_PATH ?= $(DIST_DIR)/$(BIN_NAME)
 HELPER_PATH ?= $(DIST_DIR)/$(HELPER_ASSET)
-LDFLAGS ?= -s -w
+VERSION ?= $(shell node -p "require('./package.json').version" 2>/dev/null)
+LDFLAGS ?= -s -w -X github.com/amxv/procoder/internal/buildinfo.Version=$(if $(VERSION),$(VERSION),dev)
 
 .PHONY: help fmt test vet lint check build build-helper build-all install-local clean release-tag
 
