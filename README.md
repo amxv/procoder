@@ -2,7 +2,7 @@
 
 `procoder` is a CLI for getting real Git commits back from ChatGPT's coding sandbox.
 
-ChatGPT 5.4 Pro is the best coding model, but it is not available in Codex. `procoder` solves that specific problem: your repository stays local, ChatGPT works inside its locked-down sandbox, and you still get real commits back through a clean upload/download workflow powered by `git bundle`.
+ChatGPT Pro models are excellent for coding, but it is not available in Codex. `procoder` solves that specific problem: your repository stays local, ChatGPT works inside its locked-down sandbox, and you still get real commits back through a clean upload/download workflow powered by `git bundle`.
 
 The workflow is simple:
 
