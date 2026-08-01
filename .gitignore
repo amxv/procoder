@@ -10,3 +10,6 @@ npm-debug.log*
 
 # macOS
 .DS_Store
+
+# Local agent operational state
+.agents/gg/queue.md
