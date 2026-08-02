@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/amxv/procoder/internal/apply"
+	archivepkg "github.com/amxv/procoder/internal/archive"
 	"github.com/amxv/procoder/internal/buildinfo"
 	"github.com/amxv/procoder/internal/errs"
 	"github.com/amxv/procoder/internal/prepare"
@@ -17,6 +18,7 @@ var version = buildinfo.CurrentVersion()
 var runPrepare = prepare.Run
 var runApplyDryRun = apply.RunDryRun
 var runApply = apply.Run
+var runArchive = archivepkg.Run
 
 func Run(args []string, stdout, stderr io.Writer) error {
 	_ = stderr
@@ -48,6 +50,25 @@ func Run(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 		writeLines(stdout, prepare.FormatSuccess(result))
+		return nil
+	case "archive":
+		if len(args) > 1 && isHelpArg(args[1]) {
+			printArchiveHelp(stdout)
+			return nil
+		}
+
+		parsed, err := parseArchiveArgs(args[1:])
+		if err != nil {
+			return err
+		}
+		result, err := runArchive(archivepkg.Options{
+			RepoPath: parsed.RepoPath,
+			Open:     !parsed.NoOpen,
+		})
+		if err != nil {
+			return err
+		}
+		writeLines(stdout, archivepkg.FormatSuccess(result))
 		return nil
 	case "apply":
 		if len(args) > 1 && isHelpArg(args[1]) {
@@ -89,6 +110,36 @@ func Run(args []string, stdout, stderr io.Writer) error {
 			errs.WithHint(fmt.Sprintf("run `%s --help`", commandName)),
 		)
 	}
+}
+
+type archiveArgs struct {
+	RepoPath string
+	NoOpen   bool
+}
+
+func parseArchiveArgs(args []string) (archiveArgs, error) {
+	parsed := archiveArgs{}
+	for _, arg := range args {
+		switch {
+		case arg == "--no-open":
+			parsed.NoOpen = true
+		case strings.HasPrefix(arg, "-"):
+			return archiveArgs{}, unknownArchiveArgument(arg)
+		case parsed.RepoPath == "":
+			parsed.RepoPath = arg
+		default:
+			return archiveArgs{}, unknownArchiveArgument(arg)
+		}
+	}
+	return parsed, nil
+}
+
+func unknownArchiveArgument(arg string) error {
+	return errs.New(
+		errs.CodeUnknownCommand,
+		fmt.Sprintf("unknown argument %q for `procoder archive`", arg),
+		errs.WithHint("run `procoder archive --help`"),
+	)
 }
 
 type applyArgs struct {
@@ -188,11 +239,13 @@ func printRootHelp(w io.Writer) {
 		"",
 		"Commands:",
 		"  prepare                        create a task package",
+		"  archive [repo-path]            create a standalone repository zip",
 		"  apply <return-package.zip>     apply a return package",
 		"",
 		"Examples:",
 		"  procoder --version",
 		"  procoder prepare",
+		"  procoder archive --no-open",
 		"  procoder apply procoder-return-<exchange-id>.zip --dry-run",
 	)
 }
@@ -206,6 +259,23 @@ func printPrepareHelp(w io.Writer) {
 		"",
 		"Examples:",
 		"  procoder prepare",
+	)
+}
+
+func printArchiveHelp(w io.Writer) {
+	writeLines(w,
+		"procoder archive - create a standalone repository zip",
+		"",
+		"Usage:",
+		"  procoder archive [repo-path] [--no-open]",
+		"",
+		"The archive includes the current worktree, nonignored files, local Git history, branches, and tags.",
+		"The source repository is not modified.",
+		"",
+		"Examples:",
+		"  procoder archive",
+		"  procoder archive /path/to/repository",
+		"  procoder archive --no-open",
 	)
 }
 

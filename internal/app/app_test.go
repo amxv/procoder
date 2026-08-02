@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/amxv/procoder/internal/apply"
+	archivepkg "github.com/amxv/procoder/internal/archive"
 	"github.com/amxv/procoder/internal/errs"
 	"github.com/amxv/procoder/internal/prepare"
 )
@@ -114,6 +115,63 @@ func TestRunPrepareCommand(t *testing.T) {
 	}
 	if !strings.Contains(got, "/tmp/procoder-task-20260320-120000-a1b2c3.zip") {
 		t.Fatalf("expected task package path in output, got: %q", got)
+	}
+}
+
+func TestRunArchiveCommand(t *testing.T) {
+	originalRunArchive := runArchive
+	t.Cleanup(func() {
+		runArchive = originalRunArchive
+	})
+
+	runArchive = func(opts archivepkg.Options) (archivepkg.Result, error) {
+		if opts.RepoPath != "/tmp/example-repo" {
+			t.Fatalf("unexpected repository path: %q", opts.RepoPath)
+		}
+		if !opts.Open {
+			t.Fatal("expected archive command to open Finder by default")
+		}
+		return archivepkg.Result{
+			ArchivePath: "/tmp/procoder-archive-a1b2c3/example-repo-20260802-123456.zip",
+			Opened:      true,
+		}, nil
+	}
+
+	var out bytes.Buffer
+	var errBuf bytes.Buffer
+	err := Run([]string{"archive", "/tmp/example-repo"}, &out, &errBuf)
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	got := out.String()
+	if !strings.Contains(got, "Created repository archive.") {
+		t.Fatalf("expected archive success output, got: %q", got)
+	}
+	if !strings.Contains(got, "/tmp/procoder-archive-a1b2c3/example-repo-20260802-123456.zip") {
+		t.Fatalf("expected archive path in output, got: %q", got)
+	}
+}
+
+func TestRunArchiveNoOpenFlag(t *testing.T) {
+	originalRunArchive := runArchive
+	t.Cleanup(func() {
+		runArchive = originalRunArchive
+	})
+
+	runArchive = func(opts archivepkg.Options) (archivepkg.Result, error) {
+		if opts.RepoPath != "" {
+			t.Fatalf("expected empty repository path for current directory, got %q", opts.RepoPath)
+		}
+		if opts.Open {
+			t.Fatal("expected --no-open to disable Finder reveal")
+		}
+		return archivepkg.Result{ArchivePath: "/tmp/repo.zip"}, nil
+	}
+
+	var out bytes.Buffer
+	var errBuf bytes.Buffer
+	if err := Run([]string{"archive", "--no-open"}, &out, &errBuf); err != nil {
+		t.Fatalf("Run returned error: %v", err)
 	}
 }
 

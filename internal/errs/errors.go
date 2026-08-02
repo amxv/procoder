@@ -13,6 +13,7 @@ const (
 	CodeUntrackedFilesPresent  Code = "UNTRACKED_FILES_PRESENT"
 	CodeSubmodulesUnsupported  Code = "SUBMODULES_UNSUPPORTED"
 	CodeLFSUnsupported         Code = "LFS_UNSUPPORTED"
+	CodeShallowRepository      Code = "SHALLOW_REPOSITORY"
 	CodeInvalidExchange        Code = "INVALID_EXCHANGE"
 	CodeInvalidReturnPackage   Code = "INVALID_RETURN_PACKAGE"
 	CodeBundleVerifyFailed     Code = "BUNDLE_VERIFY_FAILED"
