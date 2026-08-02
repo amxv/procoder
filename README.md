@@ -49,6 +49,14 @@ If you want to inspect the import first:
 procoder apply procoder-return-<exchange-id>.zip --dry-run
 ```
 
+For a read-only review or code handoff, create a standalone repository archive:
+
+```bash
+procoder archive
+```
+
+This writes a zip with the current worktree, nonignored files, Git history, local branches, and tags to a new folder under `/tmp`, then reveals it in Finder. The source repository is not modified. Use `procoder archive --no-open` to skip Finder.
+
 ## Why `git bundle` is the right primitive
 
 `git bundle` is what makes this workflow feel native instead of fragile.
@@ -66,7 +74,7 @@ flowchart TD
     C -->|Download return zip and run procoder apply| D[Local task branch updated]
 ```
 
-## The Three Tools
+## The Four Tools
 
 ### `procoder prepare`
 
@@ -85,6 +93,14 @@ It is a simple agent-friendly binary with no arguments or subcommands. After mak
 Runs locally in your original repository.
 
 It verifies the returned bundle, checks whether the target refs are still safe to update, and then imports the returned commits into your repo.
+
+### `procoder archive`
+
+Runs from a Git repository when you want to share or review it without creating a task exchange.
+
+It includes the current committed and uncommitted application files, nonignored untracked files, local Git history, branches, and tags. The archive is written under `/tmp`, its path is printed in the terminal, and Finder opens automatically unless you pass `--no-open`.
+
+The command does not create branches, exchange metadata, or Git bundles, and it rejects repositories that use submodules or Git LFS.
 
 ## How it works under the hood
 
